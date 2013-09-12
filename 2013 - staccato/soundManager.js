@@ -114,6 +114,14 @@ SoundManager.prototype = {
 			{
 				this.startSound();
 			}
+			
+			if (this.audioTagSupport) {
+				this.audioMusic = new Audio(audioContents());
+				this.audioMusic.loop = true;
+				if (this.persistentData.data.musicOn) {
+					this.audioMusic.play();
+				} 
+			}
 		}
  
 	},
@@ -174,9 +182,9 @@ SoundManager.prototype = {
 		if (this.audioTagSupport) { 
 			this.persistentData.toggleMusic();
 			if (this.persistentData.data.musicOn) {
-				//this.audioMusic.play();
+				this.audioMusic.play();
 			} else {
-				//this.audioMusic.pause();
+				this.audioMusic.pause();
 			}
 		}
 	},

@@ -43,7 +43,7 @@ WebGLRenderer.prototype = {
 					vec2 p = 3000. * (vT.st-vec2(.625,.875)); \
 					float c = 0.;\
 					for (float phi=0.; phi < 6.28; phi+=.7){\
-						c+=cos(sin(phi*2.3)*2.7+cos(phi)*p.x+sin(phi)*p.y+uE.a*.2-length(p));\
+						c+=cos(sin(phi*2.3)*2.7+cos(phi)*p.x+sin(phi)*p.y+uE.a*.1-length(p));\
 					}\
 					n=normalize(vec3(.3+.1*c,0.,1.-c));\
 				}\
@@ -57,7 +57,7 @@ WebGLRenderer.prototype = {
 			}\
 		");
 	*/	
-		gl.shaderSource(f= gl.createShader(gl.FRAGMENT_SHADER), "#ifdef GL_ES \nprecision lowp float;\n#endif\nvarying vec2 vT;varying vec3 vN;varying vec4 vP;uniform sampler2D uZ;uniform vec4 uE,uC;void main(){vec3 v=normalize(vN);if(uC.a==.5){vec2 u=3000.*(vT.rg-vec2(.625,.875));float r=0.;for(float f=0.;f<6.28;f+=.7)r+=cos(sin(f*2.3)*2.7+cos(f)*u.r+sin(f)*u.g+uE.a*.2-length(u));v=normalize(vec3(.3+.1*r,0.,1.-r));}vec4 u=texture2D(uZ,vec2(vT.r,vT.g));u=mix(vec4(uC.rgb,1.),u,u.a);vec3 f=vec3(1.,0.,0.),r=normalize(f+normalize(uE.rgb-vP.rgb));float S=.7+dot(v,f),g=pow(max(0.,dot(r,v)),2.);gl_FragColor=vec4(uC.a*g+S*u.rgb,u.a);}");
+		gl.shaderSource(f= gl.createShader(gl.FRAGMENT_SHADER), "#ifdef GL_ES \nprecision lowp float;\n#endif\nvarying vec2 vT;varying vec3 vN;varying vec4 vP;uniform sampler2D uZ;uniform vec4 uE,uC;void main(){vec3 v=normalize(vN);if(uC.a==.5){vec2 u=3000.*(vT.rg-vec2(.625,.875));float r=0.;for(float f=0.;f<6.28;f+=.7)r+=cos(sin(f*2.3)*2.7+cos(f)*u.r+sin(f)*u.g+uE.a*.1-length(u));v=normalize(vec3(.3+.1*r,0.,1.-r));}vec4 u=texture2D(uZ,vec2(vT.r,vT.g));u=mix(vec4(uC.rgb,1.),u,u.a);vec3 f=vec3(1.,0.,0.),r=normalize(f+normalize(uE.rgb-vP.rgb));float S=.7+dot(v,f),g=pow(max(0.,dot(r,v)),2.);gl_FragColor=vec4(uC.a*g+S*u.rgb,u.a);}");
 
 		gl.compileShader(f);  
 		

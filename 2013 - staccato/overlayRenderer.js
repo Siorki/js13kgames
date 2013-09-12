@@ -23,7 +23,7 @@ function OverlayRenderer(canvas)
 	this.mainMenuText = ["1 UP", "2 UP", "CONTROLS", "MUSIC : ", "SOUND FX : "];
 	this.pauseMenuText = ["RESUME RACE", "QUIT TO MENU", "CONTROLS", "MUSIC : ", "SOUND FX : "];
 	this.controlsMenuStaticText = ["ACCELERATE", "BRAKE", "STEER LEFT", "STEER RIGHT", "CHANGE CAMERA"];
-	this.endRaceMenuText = ["RACE AGAIN", "BACK TO TRACK MENU"];
+	this.endRaceMenuText = ["RACE AGAIN", "BACK TO TRACK MENU", "TWEET RACE TIME"];
 	this.message = ["", ""];
 	this.messageTimer = [0, 0];
 	this.keyToString = "PRESS KEYaaaaaaaaaBACKSPACEaTABaaaKEYPAD 5aENTERaaaSHIFTaCTRLaALTaPAUSEaCAPS LOCKaaaaaaaaaaaaSPACEaPAGE UPaPAGE DOWNaENDaHOMEaLEFT ARROWaUP ARROWaRIGHT ARROWaDOWN ARROWa)a*a+a,aINSaDELa/a0a1a2a3a4a5a6a7a8a9a:a;a<a=a>a?a@aAaBaCaDaEaFaGaHaIaJaKaLaMaNaOaPaQaRaSaTaUaVaWaXaYaZaLEFT WINDOWSaRIGHT WINDOWSaSELECTa^a_aKEYPAD 0aKEYPAD 1aKEYPAD 2aKEYPAD 3aKEYPAD 4aKEYPAD 5aKEYPAD 6aKEYPAD 7aKEYPAD 8aKEYPAD 9aKEYPAD *aKEYPAD +alaKEYPAD -aKEYPAD .aKEYPAD /aF1aF2aF3aF4aF5aF6aF7aF8aF9aF10aF11aF12a|a}a~aaaaaaaaaaaaaaaaaaNUM LOCKaSCROLL LOCKaaaaaaaaaaaaaaa^a!aaa$a%aaaa)a*aaaaaaaaaaaaaaaa;a=a,a-a.a/a`aaaaaaaaaaaaaaaaaaaaaaaaaaa[a\\a]a'aaAPPLE".split("a");
@@ -340,12 +340,12 @@ OverlayRenderer.prototype = {
 		this.context.strokeStyle="#000";			
 
 		this.outlineText("YOUR BEST LAP", x, -3.5*this.scale, .5);
-		this.outlineText("TOTAL RACE TIME", x, 0, .5);
+		this.outlineText("TOTAL RACE TIME", x, -0.5*this.scale, .5);
 
 		this.outlineText(this.formatTime(car.bestLap), x, -2.5*this.scale, .8);
 
 		var carTotalTime = car.lapTimes[car.lapTimes.length-1];
-		this.outlineText(this.formatTime(carTotalTime), x, 1*this.scale, .8);
+		this.outlineText(this.formatTime(carTotalTime), x, .5*this.scale, .8);
 
 		var text="You just drove the fastest lap on that track !";
 		if (car.bestLap>trackRecord.lap) {
@@ -358,7 +358,7 @@ OverlayRenderer.prototype = {
 		} else {
 			text = "NEW TRACK RECORD !";
 		}
-		this.outlineText(text, x, 1.5*this.scale, .3);
+		this.outlineText(text, x, this.scale, .3);
 		
 	},
 	
@@ -375,10 +375,10 @@ OverlayRenderer.prototype = {
 		}
 		var gray = Math.round(50+50*Math.cos(this.renderingTimer/20));
 			
-		for (var index=0; index<2; ++index) {
+		for (var index=0; index<3; ++index) {
 			this.context.strokeStyle="hsl(0,0%,"+(menu.selectedLine==index?gray:0)+"%)";			
 			this.context.fillStyle=(menu.selectedLine==index?highlightColor : "#AAA");
-			this.outlineText(this.endRaceMenuText[index], 0, (index+2)*1.5*this.scale, .8);
+			this.outlineText(this.endRaceMenuText[index], 0, (2.4+index)*this.scale, .8);
 		}
 		this.context.restore();
 		++this.renderingTimer;

@@ -282,6 +282,9 @@ Race.prototype = {
 	processCollisions : function()
 	{
 		var collisions = [];
+		for (var carIndex = 0; carIndex<this.carCount; ++carIndex) {
+			collisions.push([[],[],[],[],[],[],[]]);
+		}
 		// detect collisions
 		for (var carIndex = 0; carIndex<this.carCount; ++carIndex) {
 			// collisions with roadside
@@ -309,7 +312,7 @@ Race.prototype = {
 				var collided = this.track.testOffRoad(tile, cornerX-Math.floor(cornerX), cornerY-Math.floor(cornerY));
 				if (collided.offRoad) {
 					var force = 75000*car.speed*Math.abs(Math.cos(collided.angle-car.heading));
-					collisions.push([carIndex, carCorners[i].x, carCorners[i].y, collided.angle, force]);
+					collisions[carIndex][6].push([carIndex, carCorners[i].x, carCorners[i].y, collided.angle, force]);
 				}
 			}
 			
@@ -381,8 +384,8 @@ Race.prototype = {
 							var deltaSpeedY = car.speedY - otherCar.speedY;
 							var deltaSpeed = 10*Math.sqrt(deltaSpeedX*deltaSpeedX+deltaSpeedY*deltaSpeedY);
 							var forceAngle = Math.atan2(deltaSpeedY, deltaSpeedX);
-							collisions.push([carIndex, carCorners[i].x, carCorners[i].y, otherCar.heading+Math.atan2(bpY, bpX), deltaSpeed*otherCar.mass]);
-							collisions.push([otherCarIndex, bpX, bpY, otherCar.heading+forceAngle, deltaSpeed*car.mass]);
+							collisions[carIndex][otherCarIndex].push([carIndex, carCorners[i].x, carCorners[i].y, otherCar.heading+Math.atan2(bpY, bpX), deltaSpeed*otherCar.mass]);
+							collisions[otherCarIndex][carIndex].push([otherCarIndex, bpX, bpY, otherCar.heading+forceAngle, deltaSpeed*car.mass]);
 						   /*
 							collisions.push([carIndex, carCorners[i].x, carCorners[i].y, normalAngle, impulse*50]);
 							collisions.push([otherCarIndex, bpX, bpY, Math.PI+normalAngle, impulse*50]);
@@ -398,11 +401,12 @@ Race.prototype = {
 		for (var carIndex = 0; carIndex<this.carCount; ++carIndex) {
 			var car = this.cars[carIndex];
 			var totalForceX = 0, totalForceY=0, totalTorque=0;
-			for (k=0; k<collisions.length; ++k) {
-				var c=collisions[k];
-				if (c[0] == carIndex) {
+			for (var otherCarIndex=0; otherCarIndex<=this.carCount; ++otherCarIndex) {
+				var collisionCount = collisions[carIndex][otherCarIndex].length;
+				for (k=0; k<collisionCount; ++k) {
+					var c=collisions[carIndex][otherCarIndex][k];
 					car.collisionSpeed = car.speed;
-					car.collisionStrength = c[4]/2e6;
+					car.collisionStrength = c[4]/2e6/collisionCount;
 					totalForceX += c[4]*Math.cos(c[3]-car.heading);
 					totalForceY += c[4]*Math.sin(c[3]-car.heading);
 					var torque = c[1]*totalForceY-c[2]*totalForceX;

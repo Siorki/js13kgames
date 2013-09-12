@@ -26,7 +26,8 @@ function Game(controls)
 	for (var i=0; i<2; ++i) for (var j=0; j<5; ++j) {
 		this.controlsMenu.setAction(i, j, this.controlsMenu.recordNextKey)
 	}
-	this.endRaceMenu = new MenuDriver(1, 2, controls, this.soundManager, 1);	
+	this.endRaceMenu = new MenuDriver(1, 3, controls, this.soundManager, 1);	
+	this.endRaceMenu.setAction(0, 2, this.controlsMenu.tweetRaceTime)
 	this.trackMenu = new MenuDriver(1, 6, controls, this.soundManager, 5); // hardcoded values for track count
 	
 	this.race = new Race(this.controls);	
@@ -43,6 +44,8 @@ Game.prototype = {
 	launch : function() {
 		this.changeState(0);	// menu
 		this.intervalId = setInterval (function() { game.mainLoop(); }, 20);
+		requestAnimationFrame = requestAnimationFrame || webkitRequestAnimationFrame;
+		requestAnimationFrame(function() {game.renderLoop();});
 	},
 	
 	/**
@@ -77,7 +80,7 @@ Game.prototype = {
 	 */
 	mainLoop : function() {
 		this.actionLoop();
-		this.renderLoop();
+		//this.renderLoop();
 		this.soundLoop();
 	},
 	
@@ -249,7 +252,7 @@ Game.prototype = {
 		if (this.transitionTimer) {
 			--this.transitionTimer;
 		}
-		
+		requestAnimationFrame(function() {game.renderLoop();});
 	},
 	
 	soundLoop : function() {
