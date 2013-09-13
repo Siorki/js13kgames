@@ -76,11 +76,10 @@ Game.prototype = {
 	},
 	
 	/**
-	 * Main loop, to split between action (setInterval) and render (requestAnimationFrame)
+	 * Main loop, actions only, no rendering
 	 */
 	mainLoop : function() {
 		this.actionLoop();
-		//this.renderLoop();
 		this.soundLoop();
 	},
 	
@@ -165,10 +164,7 @@ Game.prototype = {
 			if (this.controls.controlEscape) {
 				this.changeState(4);
 			}
-			/*
-			if (this.controls.controlFire) {
-				alert("View, z="+this.renderer.cameraHeight+", tilt="+(this.renderer.tilt/20)+", w="+this.renderer.w);
-			}*/
+
 		}
 	},	
 	 

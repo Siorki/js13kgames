@@ -144,6 +144,7 @@
 	 */
 	tweetRaceTime : function(i,j) {
 		var tweet = 'https://twitter.com/intent/tweet?hashtags=js13k&original_referer=' + window.location.href +'&source=tweetbutton&text=';
+		// dirty hack using game global variable, but coded too late to do it properly
 		var totalTime = game.race.cars[0].lapTimes[game.race.cars[0].lapTimes.length-1];
 		var bestLap = game.race.cars[0].bestLap;
 		tweet += "I completed "+game.race.track.trackName[game.level]+" in "+game.overlayRenderer.formatTime(totalTime)+", best lap in "+game.overlayRenderer.formatTime(bestLap)+". Staccato, a crooked racing game for #js13k";

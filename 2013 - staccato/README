@@ -1,0 +1,20 @@
+Staccato is a racing game, developed for the 2013 edition of js13kgames.com
+It was at first inspired by Supercars on Amiga, then I figured out that using WebGL meant that the viewpoint could be easily changed.
+Default controls are WASD for player 1, arrow keys for player 2, F1 and Page Down to change the camera. Keys can be modified through the menu.
+
+Submitted version has no intro music, I had to make a choice to stay below 13k.  
+
+Thanks to :
+ - Ctrl-Alt-Test for Shader Minifier (http://www.ctrl-alt-test.fr/?cat=3)
+ - Marco Monster for car physics formulas
+ - Adam Sawicki for keeping the latter online (http://www.asawicki.info/Mirror/Car%20Physics%20for%20Games/Car%20Physics%20for%20Games.html)
+ - Authors of glsl.heroku.com for the GLSL playground and samples
+ - p01 for minimal Audio header
+ - Dojoe for Noiseplug - implementation of a compact chiptune player and bass + lead instruments (http://www.pouet.net/prod.php?which=59694)
+ 
+ 
+Technologies used are WebGL for display and WebAudio for sound fx.
+Rendering is called through requestAnimationFrame(), whereas game logic and sound use setInterval() to keep a (hopefully) constant refresh frequency.
+Successfully tested on FF 23+ and Chrome. Slow under Opera 12 because of software rendering.
+
+@Siorki on Twitter
