@@ -11,6 +11,7 @@ Thanks to :
  - Authors of glsl.heroku.com for the GLSL playground and samples
  - p01 for minimal Audio header
  - Dojoe for Noiseplug - implementation of a compact chiptune player and bass + lead instruments (http://www.pouet.net/prod.php?which=59694)
+ - Jeroen Tel - chiptune is a cover of Outrun Europa C64
  
  
 Technologies used are WebGL for display and WebAudio for sound fx.
