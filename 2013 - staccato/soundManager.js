@@ -80,11 +80,11 @@ SoundManager.prototype = {
 			this.collisionSourceNode = [false, false];
 			this.startSourceNode = false;
 			
-			var n0=this.audioContext.createGainNode(), n1=this.audioContext.createGainNode();
+			var n0=this.audioContext.createGain(), n1=this.audioContext.createGain();
 			n0.gain.value = n1.gain.value=0;
 			this.collisionGainNode = [n0,n1];
 			
-			var g0=this.audioContext.createGainNode(), g1=this.audioContext.createGainNode();
+			var g0=this.audioContext.createGain(), g1=this.audioContext.createGain();
 			g0.gain.value = g1.gain.value=0;
 			this.thrustGainNode = [g0,g1];
 			
@@ -98,7 +98,7 @@ SoundManager.prototype = {
 			this.mergerNode = this.audioContext.createChannelMerger(2);
 			
 			// Then apply global volume to the merged channel
-			this.volumeNode = this.audioContext.createGainNode();
+			this.volumeNode = this.audioContext.createGain();
 			this.volumeNode.gain.value = 0;
 
 			// Closure Compiler fails to interpret types inside arrays.
