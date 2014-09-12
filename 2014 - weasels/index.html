@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+		<title>Pest Control : Weasels</title>
+		<style type="text/css">
+
+div, canvas{
+  width:  100%;
+  margin: 0px;
+  position: absolute;
+  top: 0px;
+  left: 0px;
+    image-rendering: -o-crisp-edges;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: -webkit-optimize-contrast;
+    -ms-interpolation-mode: nearest-neighbor;
+}
+
+#bg {
+  background: #004; /* fallback for browser not supporting linear gradients */
+  background: linear-gradient( #013, #213, #413, #813, #e73); /* Colors from SotB */
+}
+
+body {
+	overflow-x : hidden;
+	overflow-y : hidden;
+	background: #000;
+}
+
+img {
+	display:none;
+}
+	
+		</style>
+	</head>
+	<body>
+		<div>
+		<div id="bg"></div>
+		<canvas id="c"></canvas>
+		<canvas id="o"></canvas>
+		<img id="s" src="sprites.png" />
+		</div>
+		<script language="Javascript" src="game.js"></script>
+		<script language="Javascript" src="world.js"></script>
+		<script language="Javascript" src="critter.js"></script>		
+		<script language="Javascript" src="renderer.js"></script>		
+		<script language="Javascript" src="controls.js"></script>		
+		<script language="Javascript" src="playField.js"></script>				
+		<script language="Javascript" src="soundManager.js"></script>		
+		<script language="Javascript" src="songs.js"></script>		
+		<script language="Javascript" src="player-small.js"></script>		
+		
+		<script>
+
+window.onload = function() {
+controls = new Controls();
+document.onmousedown = function(event) { return controls.onMouseDown(event); }
+document.onmouseup = function(event) { return controls.onMouseUp(event); }
+document.onmousemove = function(event) { return controls.onMouseMove(event); }
+
+playField = new PlayField();
+game = new Game(controls, playField);
+renderer = new Renderer(document.getElementById("c"), document.getElementById("o"), document.getElementById("bg"), document.getElementById("s"), game);
+controls.zoomRatio = 1/renderer.pixelRatio;
+playField.create(renderer.getSceneryImageData(), renderer.sceneryCanvas.width, renderer.sceneryCanvas.height);
+
+game.setRenderer (renderer);
+game.launch();
+
+}
+		</script>
+	
+
+</body></html>
