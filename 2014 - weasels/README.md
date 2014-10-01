@@ -26,29 +26,29 @@ A few extra tips before you get started :
 
 Game inspired by Lemmings, Worms, Operation Lemmings and Bill's Tomato Game.
 
-Music and sfx use [SoundBox](http://sb.bitsnbites.eu/) by Marcus Geelnard 
+Music and sfx use [SoundBox](http://sb.bitsnbites.eu/) by Marcus Geelnard  
 Ingame music is a cover of one of the modules from Lemmings, itself a remake of Swan Lake by Tchaikovsky
 
-Fan artwork borrowed from Bill's Tomato Game
-Weight artwork borrowed from the original Lemmings.
+Fan artwork borrowed from Bill's Tomato Game.  
+Weight artwork borrowed from the original Lemmings.  
 Rocky cliffs drawn with an algorithm derived from [Inigo Quilez's Voronoise](http://www.iquilezles.org/www/articles/voronoise/voronoise.htm)
 
 ---
 
 **Technical details and trivia**
 
-The screen is 320 pixels high, css-zoomed up
-Spritesheet is 16 colors only.
-Weasels animation is 10-frame long, each image displayed during 2 frames at 25 FPS
-Initial spritesheet contained diggers but they did not make it into the 13k limitation.
-The js13k version contains 10 levels with 2 different graphics sets.
-None provides weights as traps, and their implementation is missing (lack of room).
+The screen is 320 pixels high, css-zoomed up.  
+Spritesheet is 16 colors only.  
+Weasels animation is 10-frame long, each image displayed during 2 frames at 25 FPS.  
+Initial spritesheet contained diggers but they did not make it into the 13k limitation.  
+The js13k version contains 10 levels with 2 different graphics sets.  
+None provides weights as traps, and their implementation is missing (lack of room).  
 
 ---
 
 **Minification**
 
-The code was run through [Google Closure Compiler](http://closure-compiler.appspot.com/home) using Advanced settings.
-The resulting code was fed to [Javascript-minifier](http://javascript-minifier.com/), resulting in a gain of 1kb uncompressed.
-Spritesheet was reduced using [compresspng.com](http://compresspng.com)
+The code was run through [Google Closure Compiler](http://closure-compiler.appspot.com/home) using Advanced settings.  
+The resulting code was fed to [Javascript-minifier](http://javascript-minifier.com/), resulting in a gain of 1kb uncompressed.  
+Spritesheet was reduced using [compresspng.com](http://compresspng.com).  
 The final archive weasels.zip was created using [Ken Silverman's Kzip](http://advsys.net/ken/utils.htm).
