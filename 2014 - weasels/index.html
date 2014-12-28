@@ -21,6 +21,20 @@ div, canvas{
   background: linear-gradient( #013, #213, #413, #813, #e73); /* Colors from SotB */
 }
 
+#cover {
+  background: rgba(0,0,0,.6);
+  top:-2048px;
+}
+
+#endImageContainer {
+  width:160px;
+  height:80px;
+  top:88px;
+  left:50%;
+  margin-left:-80px;
+  overflow:hidden;
+}
+
 body {
 	overflow-x : hidden;
 	overflow-y : hidden;
@@ -30,6 +44,14 @@ body {
 img {
 	display:none;
 }
+
+img#endImage {
+	display:block;
+	position:absolute;
+	width:100%;
+	height:200%;
+	top:-100%;
+}
 	
 		</style>
 	</head>
@@ -38,32 +60,55 @@ img {
 		<div id="bg"></div>
 		<canvas id="c"></canvas>
 		<canvas id="o"></canvas>
+		<div id="cover"><div id="endImageContainer"><img id="endImage" src="levelEnd.png"/></div></div>
 		<img id="s" src="sprites.png" />
+		<img id="noise" src="noise.png" />
 		</div>
 		<script language="Javascript" src="game.js"></script>
 		<script language="Javascript" src="world.js"></script>
 		<script language="Javascript" src="critter.js"></script>		
 		<script language="Javascript" src="renderer.js"></script>		
+		<script language="Javascript" src="strategy.js"></script>		
 		<script language="Javascript" src="controls.js"></script>		
 		<script language="Javascript" src="playField.js"></script>				
+		<script language="Javascript" src="levelLoader.js"></script>				
 		<script language="Javascript" src="soundManager.js"></script>		
 		<script language="Javascript" src="songs.js"></script>		
 		<script language="Javascript" src="player-small.js"></script>		
 		
 		<script>
 
+		
 window.onload = function() {
 controls = new Controls();
-document.onmousedown = function(event) { return controls.onMouseDown(event); }
-document.onmouseup = function(event) { return controls.onMouseUp(event); }
-document.onmousemove = function(event) { return controls.onMouseMove(event); }
+var showTrapOnHover = true;
 
-playField = new PlayField();
+if ('ontouchstart' in document.documentElement) {
+	document.ontouchstart = function(event) { return controls.onTouchStart(event); }
+	document.ontouchenter = function(event) { return controls.onTouchStart(event); }
+	document.ontouchend = function(event) { return controls.onTouchEnd(event); }
+	document.ontouchleave = function(event) { return controls.onTouchEnd(event); }
+	document.ontouchmove = function(event) { return controls.onTouchMove(event); }
+	showTrapOnHover = false;	// do not show the trap upon hovering on mobile platforms using touch screen instead of mouses
+} else {
+	document.onmousedown = function(event) { return controls.onMouseDown(event); }
+	document.onmouseup = function(event) { return controls.onMouseUp(event); }
+	document.onmousemove = function(event) { return controls.onMouseMove(event); }
+}
+document.onkeydown = function(event) { return controls.onKeyDown(event); }
+document.onkeyup = function(event) { return controls.onKeyUp(event); }
+
+
+playField = new PlayField(document.getElementById("noise"));
 game = new Game(controls, playField);
-renderer = new Renderer(document.getElementById("c"), document.getElementById("o"), document.getElementById("bg"), document.getElementById("s"), game);
-controls.zoomRatio = 1/renderer.pixelRatio;
+renderer = new Renderer(document.getElementById("c"), document.getElementById("o"), 
+						document.getElementById("bg"), document.getElementById("cover"), document.getElementById("s"),
+						game, showTrapOnHover);
+window.addEventListener('resize', function(event) {	renderer.resizeWindow(); } );
+
 playField.create(renderer.getSceneryImageData(), renderer.sceneryCanvas.width, renderer.sceneryCanvas.height);
 
+game.world.addExplosionListener(renderer);
 game.setRenderer (renderer);
 game.launch();
 

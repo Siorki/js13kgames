@@ -32,6 +32,8 @@ function Game(controls, playField)
 	this.level=this.persistentData.maxLevel;
 	this.soundManager = new SoundManager(this.persistentData);
 	this.world = new World(controls, playField, this.soundManager);
+	this.finalLevel = this.world.loader.levels.length-1; // last level in the game
+	this.wonLastLevel = false;
 }
 
 Game.prototype = {
@@ -51,11 +53,8 @@ Game.prototype = {
 	 * Reinitialize menus (selected item, keypresses)
 	 */
 	changeState : function(newState) {
-		if (newState==0)
-		{
-			// center view
-			this.renderer.scrollScenery(this.renderer.minSceneryOffsetX>>1, this.controls, true);
-		}
+		this.controls.totalClear();
+		this.renderer.notifyStateChange(this.state, newState, this.world.won());
 		
 		if (newState==1 || (newState==2 && this.state==2)) 
 		{	// (re)start level : load the description
@@ -99,7 +98,7 @@ Game.prototype = {
 							if (this.controls.buttonAreaY==2) {
 								this.level = Math.max(0, this.level-1);
 							} else {
-								this.level = Math.min(this.persistentData.maxLevel, this.level+1);
+								this.level = Math.min(this.persistentData.maxLevel, this.level+1, this.finalLevel);
 							}
 							break;
 						case 3 : // start game
@@ -122,26 +121,46 @@ Game.prototype = {
 		}
 		
 		if (this.state>0) {	// intro, ingame or level end
+			// scroll the game area : mouse on a side, or left/right arrow key pressed
 			if (this.controls.mouseY<256)
-			{
+			{	
 				if (this.controls.mouseX < 5)
 				{
-					this.renderer.scrollScenery(5, this.controls, false);
+					this.renderer.scrollScenery(5, false);
 				}
 				if (window.innerWidth/this.renderer.pixelRatio - this.controls.mouseX < 5)
 				{
-					this.renderer.scrollScenery(-5, this.controls, false);
+					this.renderer.scrollScenery(-5, false);
 				}
+			}
+			if (this.controls.controlLeft) 
+			{
+				this.renderer.scrollScenery(10, false);
+			}
+			if (this.controls.controlRight) 
+			{
+				this.renderer.scrollScenery(-10, false);
 			}
 		}
 		
 		if (this.state == 2) {
 		
+			if (this.controls.controlEscape)
+			{
+				if (this.lastButtonClicked == 3)
+				{	
+					this.changeState(0);
+				} else {
+					// force a double keypress for this action
+					this.controls.totalClear();
+					this.lastButtonClicked = 3;
+				}
+			}
 			if (this.controls.mouseLeftButton)
  			{
-				if (this.controls.toolBelowMouse >= this.world.tools.length)
+				if (this.controls.toolBelowMouse >= 16)
 				{	// click on a game control button (pause, fast forward, ...)
-					var buttonId = this.controls.toolBelowMouse - this.world.tools.length;
+					var buttonId = this.controls.toolBelowMouse - 16;
 					this.controls.acknowledgeMouseClick();
 					switch (buttonId) {
 						case 0 :	// pause
@@ -190,10 +209,13 @@ Game.prototype = {
 				if (this.world.won()) 
 				{
 					this.soundManager.playLevelWon();
-					++this.level;
-					// write the new level reached to local storage
-					this.persistentData.maxLevel = Math.max(this.persistentData.maxLevel, this.level);
-					this.storeData();
+					this.wonLastLevel = (this.level == this.finalLevel);
+					if (this.level < this.finalLevel)
+					{	// write the new level reached to local storage
+						++this.level;
+						this.persistentData.maxLevel = Math.max(this.persistentData.maxLevel, this.level);
+						this.storeData();
+					}
 				} else {
 					this.soundManager.playLevelLost();
 				}
@@ -201,11 +223,13 @@ Game.prototype = {
 			}
 		}
 		if (this.state == 4) 
-		{	// on a mouse click, move to level intro. Redo level if failed, or progress to next one if succeeded
+		{	// on a mouse click, move to 
+			//  - main screen if the player just won the last level
+			//  - level intro otherwise. Same level if failed, next one if succeeded
 			if (this.controls.mouseLeftButton)
  			{
 				this.controls.acknowledgeMouseClick();
-				this.changeState(1);
+				this.changeState(this.wonLastLevel?0:1);
 			}
 		}
 	},	

@@ -1,0 +1,68 @@
+Prio haute :
+ - diggers
+
+
+Prio basse :
+ - graphisme des niveaux : aspect "colonnes", ...
+ - timer avant la possibilité de changer d'écran (début et fin de niveau)
+ - mot de passe pour les niveaux + contrôle pour le rentrer
+ - scrolling parallaxe, image de fond
+ - icônes options de jeu
+ - musiques supplémentaires
+ - scroll rapide par d&d dans la zone du bas (idem lemmings)
+ - arrondi sur le côté des plate-formes
+ - animation de l'écran d'intro : musique, couleurs du texte
+ - piège supplémentaire : orage, réservoir d'eau, requin, poids, tapis roulant, dynamite, bloc de lego ?
+ - chargement de la musique en thread de fond
+ - remplacement du voronoise
+ - curseur souris flèche sur les bords de l'écran
+ - décor sable
+ - décor canyon
+ - décor lego (avec niveau tetris) -> objet spécial : brique à rajouter
+ - arrêter l'escalier lorsqu'on atteint un mur
+ 
+ 
+Fait :
+ - icônes en jeu sur 2 niveaux si l'écran est trop étroit
+ - redimensionnement dynamique du jeu si la taille de la fenêtre change
+ - scroll latéral par touches gauche / droite
+ - limiter au dernier niveau disponible 
+ - sauvegarde des niveaux atteints
+ - contrôles du menu principal (niveau, son, musique, lancement)
+ - couleurs de fond (ok pour zone de jeu)
+ - pouvoir tourner les pièges
+ - flammes en sortie du lances-flammes
+ - types d'objectif pour la fin du niveau
+ - graphisme du menu principal
+ - police de caractère / graphisme du texte
+ - fond des boîtes d'icones dans le menu en jeu
+ - animation bestioles : sortie du bouclier
+ - changement du dessin des ballons + animation
+ - icône fusil
+ - cadenas sur le menu principal si le niveau au-dessus est verrouillé
+ - animation bestioles : reste pose escalier / creuseur
+ - suppression de la référence à "preys" dans world.js et renderer.js (il n'y aura pas de petits lapins)
+ - graphisme des niveaux : tiles pour le sol
+ - affichage sans antialiasing (et arrondi coord bestioles aussi) => limité aux coord des bestioles
+ - améliorer le dessin du vortex
+ - dessin des pièges à placer : entrée et sortie
+ - sfx 
+ - suppression des event keydown et handler (code mort)
+ - niveaux 5 à ...
+ - construction du builder limitée dans le temps
+ - réintégrer le js minifié au index.html (50b)
+ - animation de l'écran d'intro : traces de dents et trous
+ - texte de jeu sur 2 niveaux si l'écran est trop étroit
+ - cigarette pour les bloqueurs (animation + fumée)
+ - stratégie : le bloqueur se libère s'il n'a bloqué personne pendant un certain temps
+ - stratégie : demander un escalier au pied d'une falaise
+ - stratégie : zones de danger (les lance flammes) à contourner
+ - stratégie : lâcher le ballon au-dessus de la sortie
+ - affichage des objets non sélectionnables sous la souris
+ - affichage temporaire de la barre de vie lorsqu'une créature est blessée
+ - cache des voronoise / dessins des rochers pour accélérer le chargement des niveaux
+ - particules lors des explosions + fumée
+ - décor neige
+ - niveaux 11 à 30
+ - icône étoile ou autre à la fin d'un niveau
+ - scrolling du message "second edition - new levels ..." sur l'écran d'accueil

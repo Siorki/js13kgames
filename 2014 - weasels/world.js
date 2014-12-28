@@ -9,11 +9,13 @@
 function World(controls, playField, soundManager)
 {
 	this.controls = controls;
+	this.loader = new LevelLoader();
 	this.soundManager = soundManager;
 	
 	this.highlightedTool = -1;
 	
 	this.playField = playField;
+	this.strategy = new Strategy(this.playField);
 	
 	this.sourceRate = 43;
 	
@@ -25,8 +27,10 @@ function World(controls, playField, soundManager)
 	this.dragging = false;
 	this.lastValidX = 0;
 	this.lastValidY = 0;
+	this.variableTool = 8;
 	
-	this.trapSize = [ [3, 3], [12, 27], [12, 15], [12, 25], [12, 27], [17, 27], [13, 25] ];
+	this.trapSize = [ [3, 3], [12, 27], [12, 15], [12, 25], [15, 27], [12, 27], [17, 27], [13, 25], [8, 27], [5, 21], [15, 27] ];
+	this.explosionListeners = [];
 }
 
 
@@ -41,106 +45,17 @@ World.prototype = {
 	 */
 	loadLevel : function(index)
 	{	
-		this.currentTool = 4;	// gun selected
+		this.currentToolIndex = 5;	// gun selected
+		this.currentTool = 5;	// gun selected
 		this.predators = [];
 		this.lastExplosionTime = -999;	// used for rendering only
 		this.draggedTrap = -1;	// trap being dragged (mouse down) in the playfield
 		this.trapUnderMouse = -1;
 		this.shotgunReloadTime = 0;
+		this.levelIndex = index;
 
-		var allLevels = 
-		[
-			[	"Walking through a minefield",
-				20,	// number of weasels 
-				20, // hit goal
-				120,	// time in seconds
-				[10, 0, 0, 0, -1], // 10 landmines
-				[6, 190, 20, 5, 817, 159],	// entrance and exit
-				[2, 100, 160, 800, 96]
-			],
-			[
-				"Gone with the wind",
-				20,
-				10,
-				120,
-				[0, 3, 0, 0, -1], // 3 fans
-				[6, 300, 20, 5, 400, 219],
-				[1, 200, 60, 544, 16, 1, 200, 220, 576, 36, 1, 776, 204, 32, 52]
-			],
-			[
-				"Pop goes the weasel",
-				10,
-				10,
-				120,
-				[0, 2, 0, 0, -1], // 2 fans
-				[6, 260, 100, 5, 740, 176, 4, 530, 199],
-				[2, 200, 200, 350, 56, 2, 660, 180, 100, 76]
-			],
-			[
-				"Cooked to order",
-				20,
-				15,
-				120,
-				[0, 0, 3, 0, -1], // 3 flamethrowers,
-				[6, 300, 20, 5, 300, 220],
-				[1, 280, 60, 384, 16, 1, 220, 140, 256, 16, 1, 508, 140, 256, 16, 1, 252, 220, 480, 16] 
-			],
-			[
-				"Caution, thin ice",
-				15,
-				15,
-				120,
-				[3, 0, 0, 0, -1], // 3 mines
-				[6, 210, 16, 5, 200, 191],
-				[1, 192, 32, 192, 16, 1, 352, 64, 192, 16, 1, 192, 96, 192, 16, 1, 352, 128, 320, 16, 1, 320, 160, 448, 16, 1, 768, 144, 32, 32, 1, 160, 192, 256, 64] 
-			],
-			[	
-				"Stairway to hell",
-				4,
-				4,
-				120,
-				[2, 0, 0, 0, -1], // 2 mines
-				[6, 260, 100, 5, 740, 175],
-				[2, 200, 200, 400, 56, 2, 630, 170, 130, 86]
-			],
-			[
-				"No mines this time",
-				15,
-				15,
-				120,
-				[0, 1, 1, 0, -1], // 1 fan, 1 flamethrower
-				[6, 210, 16, 5, 200, 191],
-				[1, 192, 32, 192, 16, 1, 352, 64, 192, 16, 1, 192, 96, 192, 16, 1, 352, 128, 320, 16, 1, 320, 160, 448, 16, 1, 768, 144, 32, 32, 1, 160, 192, 256, 64] 
-			],
-			[	
-				"Bad kids get grounded",
-				4,
-				4,
-				120,
-				[2, 0, 0, 0, -1], // 2 mines
-				[6, 260, 100, 5, 740, 174, 4, 530, 199],
-				[2, 200, 200, 400, 56, 2, 630, 170, 130, 86]
-			],
-			[
-				"In so many ways",
-				10,
-				10,
-				180,
-				[3, 0, 0, 0, -1], // 3 mines
-				[6, 300, 50, 5, 220, 239, 5, 280, 239, 5, 340, 239, 5, 400, 239, 5, 460, 239, 5, 520, 239, 5, 580, 239, 5, 640, 239, 5, 700, 239, 5, 760, 239],
-				[1, 256, 128, 448, 16, 1, 192, 240, 608, 16]
-			],
-			[
-				"Dark side of the mountain",
-				15,
-				15,
-				120,
-				[2, 3, 0, 0, -1], // 2 mines, 3 fans
-				[6, 250, 120, 5, 780, 175, 4, 430, 180],
-				[3, 200, 180, 600, 126]
-			]	
-		];
-		var level = allLevels[Math.min(9, Math.max(0, index))];
+		var level = this.loader.getLevel(index); // allLevels[Math.min(9, Math.max(0, index))];
+		this.variableTool = [8, 9, 10][Math.floor(index/15)];
 		
 		this.levelTitle = level[0];
 
@@ -157,97 +72,12 @@ World.prototype = {
 		this.traps = [];
 		for (var i=0; i<level[5].length; i+=3)	// preset objects, including entrance and exit
 		{
-			this.traps.push( {	type : level[5][i],
-								x : level[5][i+1],
-								y : level[5][i+2],
-								speedX : 0,
-								speedY : 0,
-								dir : 1
-							 } );
+			this.createTrap(level[5][i], level[5][i+1], level[5][i+2]);		
 		}
 		this.playField.initFromDescription(level[6]);
-		this.resetCritterStrategy();
+		this.strategy.clear(this.traps);
 	},
 
-	/**
-	 * Clears the critter strategy table
-	 * then sets entries for all exits in level
-	 * and initiates traversal algorithm
-	 */
-	resetCritterStrategy : function()
-	{
-		this.critterStrategy = [];
-		this.strategyQueue = [];
-		for (var i=0; i<(this.playField.width>>5); ++i)
-		{
-			this.critterStrategy.push([0,0,0,0,0,0,0,0].slice());	// playfield is 256 pixels = 8x32 high
-		}
-		for (var i=0; i<this.traps.length; ++i)
-		{
-			if (this.traps[i].type == 5) // exit
-			{
-				this.critterStrategy[this.traps[i].x>>5][this.traps[i].y>>5] = 16;	// strategy : exit is here
-				this.strategyQueue.push({x:this.traps[i].x>>5, y:this.traps[i].y>>5});
-			}
-		}
-	},
-	
-	/**
-	 * Performs one step of the breadth-first traversal algorithm
-	 * to identify the strategy (directions to follow in each square)
-	 */
-	developStrategy : function()
-	{
-		if (this.strategyQueue.length == 0)
-		{
-		} else {
-			var square = this.strategyQueue.shift();
-			if (square.x > 0)
-			{
-				if (!this.critterStrategy[square.x-1][square.y])
-				{
-					this.strategyQueue.push({x:square.x-1, y:square.y});
-				}
-				if (!(this.critterStrategy[square.x-1][square.y]&20)) 
-				{
-					this.critterStrategy[square.x-1][square.y] |= 1; // right
-				}
-			}
-			if (square.x+1 < (this.playField.width>>5))
-			{
-				if (!this.critterStrategy[square.x+1][square.y])
-				{
-					this.strategyQueue.push({x:square.x+1, y:square.y});
-				}
-				if (!(this.critterStrategy[square.x+1][square.y]&17)) 
-				{
-					this.critterStrategy[square.x+1][square.y] |= 4; // left
-				}
-			}
-			if (square.y > 0)
-			{
-				if (!this.critterStrategy[square.x][square.y-1])
-				{
-					this.strategyQueue.push({x:square.x, y:square.y-1});
-				}
-				if (!(this.critterStrategy[square.x][square.y-1]&24)) {
-					this.critterStrategy[square.x][square.y-1] |= 2; // down
-				}
-
-			}
-			if (square.y < 7)
-			{
-				if (!this.critterStrategy[square.x][square.y+1])
-				{
-					this.strategyQueue.push({x:square.x, y:square.y+1});
-				}
-				if (!(this.critterStrategy[square.x][square.y+1]&18))
-				{
-					this.critterStrategy[square.x][square.y+1] |= 8; // top (hard to achieve)
-				}
-			}
-		}
-	},
 	
 	/**
 	 * Performs one step of animation : move critters, check them against traps
@@ -260,9 +90,9 @@ World.prototype = {
 		var scenery = this.playField; 
 		var fraggedCount = 0;
 		for (var i=0; i<this.predators.length; ++i)  {
-			this.predators[i].move(scenery, this.critterStrategy);
+			this.predators[i].move(this.timer, scenery, this.strategy);
 			// avoid gun aim, even when reloading
-			this.predators[i].useShield(this.controls.worldX, this.controls.mouseY, this.currentTool == 4 && this.draggedTrap == -1);
+			this.predators[i].useShield(this.controls.worldX, this.controls.mouseY, this.currentTool == 5 && this.draggedTrap == -1);
 			fraggedCount += (this.predators[i].activity < 0 ? 1 :0);
 			
 			// if hitting a blocker, turn around
@@ -274,17 +104,21 @@ World.prototype = {
 					&& (this.predators[i].x - this.predators[j].x)*this.predators[i].dir < 0)
 				{
 					this.predators[i].dir *= -1;
+					// reset the blocker timer to let it know it actually blocked another weasel
+					// and prevent it from resuming walking too soon
+					// keep the low 7 bits constant as they are used by the animation
+					this.predators[j].timer = this.predators[j].timer & 127; 
 				}
 			}
 		}
 		this.crittersFragged = fraggedCount; // atomic change : temp variable prevents concurrent access issues (for display)
 		this.crittersInside = this.predators.length-fraggedCount - this.crittersExited;
 		this.animateTraps();
-		this.developStrategy();
-		this.developStrategy();
-		if ((this.timer&255)==0)
-		{	// every 10 seconds, reconsider the strategy, as some parts of the scenery may have changed / been destroyed
-			this.resetCritterStrategy();
+		this.strategy.fillDirectionsTable();
+		this.strategy.fillDirectionsTable();
+		if ((this.timer&1023)==0)
+		{	// every 40 seconds, reconsider the strategy, as some parts of the scenery may have changed / been destroyed
+			this.strategy.resetDirectionsTable(this.traps);
 		}
 	},
 	
@@ -317,16 +151,30 @@ World.prototype = {
 						this.animateFlamethrower(trap);
 						break;
 					case 3 :
-						this.animateWeight(trap);
-						break;
-					case 4 :
 						this.animateBalloonStand(trap);
 						break;
-					case 5 : 
+					case 6 : 
 						this.animateExit(trap);
 						break;
-					case 6 :
+					case 7 :
 						this.animateEntrance(trap);
+						break;
+					case 8 :
+						this.animateCannonTower(trap);
+						break;
+					case 9 :
+						if (this.animateDynamite(trap))
+						{	// landmine blown
+							this.lastExplosionTime = this.timer;
+							this.traps.splice(i, 1);
+							if (this.draggedTrap>=i) {
+								--this.draggedTrap;
+							}
+							--i;
+						}
+						break;
+					case 10 :
+						this.animateBuildingBlock(trap);
 						break;
 					default :
 						break;
@@ -353,30 +201,10 @@ World.prototype = {
 		}
 		if (triggered)
 		{	// mine blows up
-			this.playField.explode(trap.x, trap.y, 30);
-			for (var j=0; j<this.predators.length; ++j)
-			{
-				var dist2 = Math.pow(trap.x - this.predators[j].x, 2) + Math.pow(trap.y - this.predators[j].y + 6, 2);
-				if (dist2<600) {
-					this.predators[j].life -= 500 / (10 + dist2);	// 50 at epicenter, less damage further
-					this.predators[j].sendFlying (50*(this.predators[j].x-trap.x)/dist2, 50*(-6+this.predators[j].y-trap.y)/dist2);
-				}
-			}
-			this.soundManager.playExplosion();
+			this.blowExplosives(trap.x, trap.y, 30, 50, 50);
 			return true;
-		} else 
-		{	// mine falls down until it hits scenery
-			++trap.speedY;
-			for (var y=0; y<trap.speedY; ++y)
-			{
-				if (this.playField.intersectBox(trap.x-this.trapSize[trap.type][0], trap.y+1, this.trapSize[trap.type][0]*2+1, 1))
-				{
-					trap.speedY=0;
-				} else {
-					++trap.y;
-					trap.x+=trap.speedX/trap.speedY;
-				}
-			}
+		} else {	
+			this.applyGravity(trap);
 		}
 		return false;
 	},
@@ -402,32 +230,127 @@ World.prototype = {
 	/**
 	 * Animation for flamethrower, called at each frame for every fan
 	 *  - causes any critter passing in front of the flamethrower to receive damage
+	 *  - lights dynamite if approached
 	 */
 	animateFlamethrower : function(trap)
 	{
 		for (var j=0; j<this.predators.length; ++j)
 		{
-			if ( Math.abs(trap.y - this.predators[j].y) < 8
-			   && Math.abs(trap.x + 30*trap.dir - this.predators[j].x) < 20
+			if ( Math.abs(trap.y - 6 - this.predators[j].y) < 8
+			   && Math.abs(trap.x + 25*trap.dir - this.predators[j].x) < 15
 			   && this.predators[j].activity != 7)
 			{
-				this.predators[j].life-= 100 / ( 5 + Math.abs(this.predators[j].x - trap.x - 25*trap.dir));
-				if (this.predators[j].life < 0)
-				{
-					this.predators[j].activity = 7; 
-					this.predators[j].timer = 0;
-				}
+				this.predators[j].wound(100 / ( 5 + Math.abs(this.predators[j].x - trap.x - 25*trap.dir)), this.timer);
 			}
 		}
+		// try to find dynamite nearby
+		// test duplicated from the one in animateDynamite() as the latter method is not called if the dynamite is dragged
+		// yet it should ignite if dragged next to the firethrower
+		for (var i=0; i<this.traps.length; ++i) {
+			var otherTrap = this.traps[i];
+			if (otherTrap.type == 9 // dynamite
+				&& Math.abs(otherTrap.y - 13 - trap.y) < 5
+				&& Math.abs(otherTrap.x - 20*trap.dir - trap.x) < 20
+				&& otherTrap.timer == 0)
+			{
+				otherTrap.timer = 50; // ignited !
+			}
+		}
+		
+	},
+	
+	/**
+	 * Effect for cannon tower
+	 * Shoot the critter with the lowest life level in range
+	 * @param trap dynamite instance in this.traps[]
+	 */
+	animateCannonTower : function(trap)
+	{
+		this.applyGravity(trap);
+		var fireRate = 25;
+		var damage = 25;
+		if (trap.timer >= fireRate)
+		{	// find a new target : locate the one in range with the lowest life level
+			trap.timer = 0;
+			trap.hitTime = -1;
+			trap.targetCritter = -1;
+			var minLife = 110;
+			for (var j=0; j<this.predators.length; ++j)
+			{
+				var target = this.predators[j];
+				var dist2 = Math.pow(trap.y - 6 - target.y, 2) + Math.pow(trap.x - target.x, 2);
+				if (dist2 < 1600 && target.activity > -1) // in range and alive
+				{
+					if (target.life < minLife)
+					{
+						minLife = target.life;
+						trap.targetCritter = j;
+						trap.hitTime = Math.max(2, Math.ceil(Math.sqrt(dist2)/3));
+					}
+				}
+			}
+			trap.timer = 0;
+		}
+
+		if (trap.timer<=trap.hitTime && trap.targetCritter > -1)
+		{
+			var target = this.predators[trap.targetCritter];
+			var dt = trap.timer/trap.hitTime;
+			trap.pelletX = trap.x*(1-dt)+target.x*dt;
+			trap.pelletY = (trap.y-13)*(1-dt)+(target.y-6)*dt;
+			if (trap.timer==trap.hitTime)
+			{
+				target.wound(damage, this.timer);
+				trap.targetCritter = -1;
+			}
+		}
+		++trap.timer;
 	},
 	
 	
 	/**
-	 * Effect for weight : NYI
+	 * Effect for dynamite :
+	 *  - while unlit, nothing happens
+	 *  - gets lit upon approaching flamethrower (starts countdown)
+	 *  - explodes after countdown
+	 * @param trap dynamite instance in this.traps[]
 	 */
-	animateWeight : function(trap)
+	animateDynamite : function(trap)
 	{
-		
+		this.applyGravity(trap); // dynamite falls down
+		if (trap.timer>0)	// -1 means unlit
+		{
+			--trap.timer;
+			if (!trap.timer)
+			{
+				// BOOM
+				this.blowExplosives(trap.x, trap.y, 50, 100, 75);
+				return true;
+			}
+		} else {	
+			// try to find a spark nearby
+			for (var i=0; i<this.traps.length; ++i) {
+				if (this.draggedTrap != i)	// trap being dragged under the mouse cursor is inactive
+				{
+					var otherTrap = this.traps[i];
+					if (otherTrap.type == 2 // flamethrower
+						&& Math.abs(otherTrap.y + 13 - trap.y) < 5
+						&& Math.abs(otherTrap.x + 20*otherTrap.dir - trap.x) < 20)
+					{
+						trap.timer = 50; // ignited !
+					}
+				}
+			}
+		}
+		return false;
+	},
+	
+	/**
+	 * Effect for building block : add to the scenery
+	 * Cannot be removed
+	 */
+	animateBuildingBlock : function(trap)
+	{
 	},
 	
 	/**
@@ -436,6 +359,7 @@ World.prototype = {
 	 */
 	animateExit : function(trap)
 	{
+		this.applyGravity(trap);
 		for (var j=0; j<this.predators.length; ++j)
 		{
 			if (this.predators[j].activity != 8  
@@ -478,6 +402,52 @@ World.prototype = {
 			   && Math.abs(trap.x - this.predators[j].x) < 2)
 			{
 				this.predators[j].activity = 5; // balloonner
+				this.predators[j].timer = 0;
+			}
+		}
+	},
+	
+	/**
+	 * Initiate an explosion (landmine, dynamite, ...)
+	 * @param x x-coordinate of the center of the explosion
+	 * @param y y-coordinate of the center of the explosion
+	 * @param holeRadius radius, in pixels, of the hole dug
+	 * @param damage maximal damage sustained (at the epicenter)
+	 * @param strength strength of the blow, determining the speed to send critters flying
+	 */
+	blowExplosives : function(x, y, holeRadius, damage, strength)
+	{
+		this.playField.explode(x, y, holeRadius);
+		for (var j=0; j<this.predators.length; ++j)
+		{
+			var dist2 = Math.pow(x - this.predators[j].x, 2) + Math.pow(y - this.predators[j].y + 6, 2);
+			if (dist2<damage*12) {
+				this.predators[j].sendFlying(strength*(this.predators[j].x-x)/dist2, strength*(-6+this.predators[j].y-y)/dist2);
+				this.predators[j].wound(damage*10 / (10 + dist2), this.timer);	// at epicenter, less damage further
+			}
+		}
+		this.soundManager.playExplosion();
+		for (var i=0; i<this.explosionListeners.length; ++i)
+		{
+			this.explosionListeners[i].notifyExplosion(x, y, holeRadius, strength);
+		}
+	},
+	
+	/**
+	 * Let a trap fall until it reaches the ground (or something to stand on)
+	 * @param trap Trap item, usually landmine or dynamite
+	 */
+	applyGravity : function(trap)
+	{
+		++trap.speedY;
+		for (var y=0; y<trap.speedY; ++y)
+		{
+			if (this.playField.intersectBox(trap.x-this.trapSize[trap.type][0], trap.y+1, this.trapSize[trap.type][0]*2+1, 1))
+			{
+				trap.speedY=0;
+			} else {
+				++trap.y;
+				trap.x+=trap.speedX/trap.speedY;
 			}
 		}
 	},
@@ -497,7 +467,8 @@ World.prototype = {
 			&& this.controls.mouseLeftButton 
 			&& this.draggedTrap == -1) // do not change the current tool while dragging a trap, it will cause mayhem
 		{
-			this.currentTool = this.highlightedTool;
+			this.currentToolIndex = this.highlightedTool;
+			this.currentTool = (this.currentToolIndex == 4 ? this.variableTool : this.currentToolIndex);
 		}		
 		if (this.controls.mouseY<this.playField.height) // TODO : adjust to canvas height
 		{	// mouse in playfield
@@ -508,17 +479,20 @@ World.prototype = {
 				this.trapUnderMouse = this.performGrabTest(this.controls.worldX, this.controls.mouseY, 5);
 				if (this.controls.mouseLeftButton)
 				{
-					if (this.trapUnderMouse>-1) {
+					if (this.trapUnderMouse>-1 && this.canMoveTrap(this.traps[this.trapUnderMouse].type)) {
 						// click over a trap, grab it
 						this.draggedTrap = this.trapUnderMouse;
 						this.dragStartMouseX = this.controls.worldX;
 						this.dragStartMouseY = this.controls.mouseY;
 						this.dragStartObjectX = this.traps[this.draggedTrap].x;
 						this.dragStartObjectY = this.traps[this.draggedTrap].y;
+						
+						// dragged traps are no longer considered a hazard (flame is stopped)
+						this.strategy.removeHazard(this.traps[this.draggedTrap]);
 					} 
-					else
+					else if (this.trapUnderMouse == -1)
 					{	// click in an empty area, use the current tool
-						if (this.currentTool == 4) 
+						if (this.currentTool == 5) 
 						{	// shotgun
 							if (!this.shotgunReloadTime)
 							{
@@ -526,7 +500,7 @@ World.prototype = {
 								this.controls.acknowledgeMouseClick();
 							}
 						} else {
-							if (this.currentTool>-1 && this.tools[this.currentTool]>0)
+							if (this.currentToolIndex>-1 && this.tools[this.currentToolIndex]>0)
 							{	// other tool, with charges remaining
 								this.draggedTrap = -2;
 							}
@@ -554,6 +528,7 @@ World.prototype = {
 					}
 					this.traps[this.draggedTrap].x = newX;
 					this.traps[this.draggedTrap].y = newY;
+					
 				}
 				if (!this.controls.mouseLeftButton)
 				{	// LMB released, end drag or action
@@ -564,12 +539,16 @@ World.prototype = {
 						{	// other traps do not rotate
 							this.traps[this.draggedTrap].dir *= -1;
 						}						
-					} else if (!this.dragValid)
-					{	// if dropping onto an invalid location, revert to the last valid coordinates
-						this.traps[this.draggedTrap].x = this.lastValidX;
-						this.traps[this.draggedTrap].y = this.lastValidY;
+					} else {
+						if (!this.dragValid)
+						{	// if dropping onto an invalid location, revert to the last valid coordinates
+							this.traps[this.draggedTrap].x = this.lastValidX;
+							this.traps[this.draggedTrap].y = this.lastValidY;
+						}
 					}
-					
+					// trap was removed from hazard list upon dragging (even if ony turning it around), restore it
+					this.strategy.addHazard(this.traps[this.draggedTrap]);
+						
 					this.draggedTrap = -1;
 					this.dragging = false;
 				}
@@ -581,14 +560,8 @@ World.prototype = {
 				{	// LMB released, trap creation if allowed
 					if (this.dragValid)
 					{	// OK to create a trap here
-						this.traps.push( {	type : this.currentTool,
-											x : this.controls.worldX,
-											y : this.controls.mouseY,
-											speedX : 0,
-											speedY : 0,
-											dir : 1
-										 } );
-						--this.tools[this.currentTool];
+						this.createTrap(this.currentTool, this.controls.worldX, this.controls.mouseY);		
+						--this.tools[this.currentToolIndex];
 					}
 					this.draggedTrap = -1;
 				}
@@ -600,7 +573,15 @@ World.prototype = {
 			{
 				if (this.draggedTrap>-1) {
 					// drag a trap outside of the playfield to return it to storage
-					this.removeTrap(this.draggedTrap);
+					if (this.traps[this.draggedTrap].type == 6)
+					{
+						// exits cannot be returned to pool. Move them back to their original location
+						this.traps[this.draggedTrap].x = this.dragStartObjectX;
+						this.traps[this.draggedTrap].y = this.dragStartObjectY;
+						
+					} else {
+						this.removeTrap(this.draggedTrap);
+					}
 				}	// other possible value is -2, meaning trap creation. Returning it to the storage does nothing.
 				this.draggedTrap = -1;
 			}
@@ -608,7 +589,7 @@ World.prototype = {
 	},
 	
 	/**
-	 * Identifies whether there is already a trap under the mouse
+	 * Identifies whether there is already a trap under the mouse (even one that cannot be moved)
 	 *  - to display a "grabbing hand" mouse cursor instead of the usual pointer
 	 *  - to know what to grab on a mouse click
 	 * @param x x-coordinate to test for traps
@@ -623,8 +604,7 @@ World.prototype = {
 			var trap = this.traps[i];
 			var w = this.trapSize[trap.type][0];
 			var h = this.trapSize[trap.type][1];
-			if (	trap.type < 5 // do not allow to drag entrance and exit
-				&&	x>trap.x-w-distance && x<trap.x+w+distance
+			if (	x>trap.x-w-distance && x<trap.x+w+distance
 				&&	y>trap.y-h-distance && y<trap.y+distance)
 			{
 				return i;
@@ -634,12 +614,22 @@ World.prototype = {
 	},
 	
 	/**
+	 * Returns whether a trap can be dragged and moved or not
+	 * True for mine(0), fan(1), flamethrower(2), balloons(3) and dynamite(9)
+	 * True for exit(6) on level 30
+	 */
+	canMoveTrap : function(type)
+	{
+		return (type>-1 && type<4)||(type==9)||(type==6&&this.levelIndex>=29);
+	},
+	
+	/**
 	 * Tests whether a trap can be placed at the given coordinates
 	 * False usually means that the playfield is blocking
 	 * Called by the mouse handler to determine whether a player action is allowed or not
-	 * @param type Trap type index, as in tools (0=mine, 1=fan, ...)
-	 * @param x X-coordinate of the trap in playfield
-	 * @param y Y-coordinate of the trap in playfield
+	 * @param type Trap type index, as in tools (0=mine, 1=fan,2=flamethrower, 3=balloon, ...)
+	 * @param x X-coordinate of the trap center in playfield
+	 * @param y Y-coordinate of the trap bottom in playfield
 	 * @return true if trap can be added, false otherwise
 	 */
 	canPlaceTrapAt : function(type, x, y)
@@ -648,11 +638,34 @@ World.prototype = {
 	},
 	
 	/**
+	 * Adds a trap to the trap list (this.traps)
+	 * then records it into the critter strategy as well
+	 * @param type trap type (0=mine, 1=fan,2=flamethrower, 3=balloon, ...)
+	 * @param x X-coordinate of the trap center in playfield
+	 * @param y Y-coordinate of the trap bottom in playfield
+	 */
+	createTrap : function(type, x, y)
+	{
+		var newTrap = { type : type,
+						x : x,
+						y : y,
+						speedX : 0,
+						speedY : 0,
+						dir : 1,	// facing right
+						timer : -1,	// unlit (dynamite))
+					  };
+		this.traps.push(newTrap);
+		this.strategy.addHazard(newTrap);
+	},
+	
+	/**
 	 * Delete a trap and return it into tool storage
+	 * Erases it from the critter strategy as well
 	 */
 	removeTrap : function(trapIndex)
 	{
 		++this.tools[this.traps[trapIndex].type];
+		this.strategy.removeHazard(this.traps[trapIndex]);
 		this.traps.splice(trapIndex, 1);
 	},
 	
@@ -697,8 +710,17 @@ World.prototype = {
 	 */
 	lost : function()
 	{
-		return this.fragTarget ? this.timer >= this.totalTime || this.crittersWaitingAtSource + this.crittersInside + this.crittersFragged < this.fragTarget
-							   : this.crittersExited > 0;
+		return this.fragTarget
+	      ? this.timer >= this.totalTime || this.crittersWaitingAtSource + this.crittersInside + this.crittersFragged < this.fragTarget
+		  : this.crittersExited > 0;
+	},
+
+	/** 
+	 * Add a listener to be notified of explosions
+	 */
+	addExplosionListener : function(listener)
+	{
+		this.explosionListeners.push(listener);
 	}
 	
 }
