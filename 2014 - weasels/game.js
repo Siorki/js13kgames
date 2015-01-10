@@ -10,7 +10,7 @@
  *
  * @constructor
  */
-function Game(controls, playField)
+function Game(controls, playField, savedData)
 {
 	this.controls = controls;
 	this.fastForward = false;
@@ -18,17 +18,12 @@ function Game(controls, playField)
 	
 	this.lastButtonClicked = -1;
 	
-	// Object storage implementation from http://stackoverflow.com/questions/2010892/storing-objects-in-html5-localstorage/3146971
-	// Not put in its own class this year, should be so in a clean design
 	this.persistentData = {
-		soundOn : true,
-		musicOn : true,
-		maxLevel : 0
+		soundOn : (savedData.hasOwnProperty('soundOn') ?  savedData.soundOn : true),
+		musicOn : (savedData.hasOwnProperty('musicOn') ?  savedData.musicOn : true),
+		maxLevel : (savedData.hasOwnProperty('maxLevel') ?  savedData.maxLevel : 0)
 	};
-	var recordedData = localStorage.getItem("WeaselsData");
-	if (recordedData) {
-		this.persistentData = JSON.parse(recordedData);
-	}
+	
 	this.level=this.persistentData.maxLevel;
 	this.soundManager = new SoundManager(this.persistentData);
 	this.world = new World(controls, playField, this.soundManager);
@@ -122,13 +117,14 @@ Game.prototype = {
 		
 		if (this.state>0) {	// intro, ingame or level end
 			// scroll the game area : mouse on a side, or left/right arrow key pressed
+			this.renderer.scrollingInProgress = 0;
 			if (this.controls.mouseY<256)
 			{	
-				if (this.controls.mouseX < 5)
+				if (this.controls.mouseX < 12)
 				{
 					this.renderer.scrollScenery(5, false);
 				}
-				if (window.innerWidth/this.renderer.pixelRatio - this.controls.mouseX < 5)
+				if (window.innerWidth/this.renderer.pixelRatio - this.controls.mouseX < 12)
 				{
 					this.renderer.scrollScenery(-5, false);
 				}
@@ -208,6 +204,40 @@ Game.prototype = {
 			{
 				if (this.world.won()) 
 				{
+					if (globalUseClay)	// use as an ifdef
+					{
+						switch (this.level)
+						{
+							case 0 : // first level completed
+								( new Clay.Achievement( { id: 5478 } ) ).award();
+								break;
+							case 7 : // first level with cannon
+								( new Clay.Achievement( { id: 5479 } ) ).award();
+								break;
+							case 14 : // finished summer levels
+								( new Clay.Achievement( { id: 5480 } ) ).award();
+								break;
+							case 21 : // first level with dynamite
+								( new Clay.Achievement( { id: 5481 } ) ).award();
+								break;
+							case 29 : // finished winter levels
+								( new Clay.Achievement( { id: 5482 } ) ).award();
+								break;
+							default :
+						}
+						if (this.world.timer < 750) // won in less than 30s
+						{
+							( new Clay.Achievement( { id: 5483 } ) ).award();
+						}
+						if (this.world.totalTime - this.world.timer < 250 && this.world.timer < this.world.totalTime) // less than 10s left
+						{
+							( new Clay.Achievement( { id: 5484 } ) ).award();
+						}
+						if (this.world.timer >= this.world.totalTime) // time elapsed : level where no weasel shall make it to the exit
+						{
+							( new Clay.Achievement( { id: 5485 } ) ).award();
+						}
+					} // end if (globalUseClay)
 					this.soundManager.playLevelWon();
 					this.wonLastLevel = (this.level == this.finalLevel);
 					if (this.level < this.finalLevel)
@@ -253,9 +283,14 @@ Game.prototype = {
 	
 	/**
 	 * Private method to synchronize local storage with current data
+	 * Uses Clay user storage if available, browser local storage otherwise
 	 */
 	storeData : function() {
-		localStorage.setItem("WeaselsData", JSON.stringify(this.persistentData));
+		if (globalUseClay) {
+			Clay.Player.saveUserData("WeaselsData", this.persistentData, function( response ) {} );
+		} else {
+			localStorage.setItem("WeaselsData", JSON.stringify(this.persistentData));	
+		}
 	},
 	
 	

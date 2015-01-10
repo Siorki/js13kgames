@@ -13,6 +13,7 @@ function Renderer(sceneryCanvas, overlayCanvas, background, cover, spriteImg, ga
 	this.cover = cover;
 	this.coverDown = false;
 	this.showTrapOnHover = showTrapOnHover;	// true to show the trap upon hovering (mouse), false not to show it (touch screen)
+	this.scrollingInProgress = 0;
 	
 	// create a mirrored version of the sprite sheet
 	this.spriteSheet = document.createElement("canvas");
@@ -148,7 +149,9 @@ Renderer.prototype = {
 	scrollScenery : function(dx, absolute) {
 		if (absolute) {
 			this.sceneryOffsetX = 0;
-		}
+		} else {
+			this.scrollingInProgress = (dx<0?1:-1);
+		}	
 		this.game.world.controls.onHScroll(this.sceneryOffsetX = Math.min(0, Math.max(this.sceneryOffsetX+dx, this.minSceneryOffsetX)));
 		this.sceneryCanvas.style.left = (this.pixelRatio*this.sceneryOffsetX)+"px";
 	},
@@ -388,10 +391,37 @@ Renderer.prototype = {
 		}
 		
 		if (this.game.state == 2)
-		{	// playing or pause : show icons, timer, level data
+		{	// playing or pause : show icons, timer, level data, scrolling arrows
 			this.drawIcons();
 			this.drawWorldInfo();
+
+			// Draw scrolling arrows
+			this.overlayContext.fillStyle="#FFF";
+			if (this.sceneryOffsetX < 0)
+			{
+				var arrowSize = (this.scrollingInProgress<0 ? 6: 10);1	
+				this.overlayContext.beginPath();
+				this.overlayContext.moveTo(12, 128);
+				this.overlayContext.lineTo(12, 128-arrowSize);
+				this.overlayContext.lineTo(12-arrowSize, 128);
+				this.overlayContext.lineTo(12, 128+arrowSize);
+				this.overlayContext.fill();
+			}
+			
+			if (this.sceneryOffsetX > this.minSceneryOffsetX)
+			{
+				var arrowSize = (this.scrollingInProgress>0 ? 6 : 10);
+				var left = window.innerWidth/this.pixelRatio - 12;
+				this.overlayContext.beginPath();
+				this.overlayContext.moveTo(left, 128);
+				this.overlayContext.lineTo(left, 128-arrowSize);
+				this.overlayContext.lineTo(left+arrowSize, 128);
+				this.overlayContext.lineTo(left, 128+arrowSize);
+				this.overlayContext.fill();
+			}
+
 			this.drawMouseCursor(); // on top, so drawn last
+
 		}
 		
 		if (this.game.state == 4)
