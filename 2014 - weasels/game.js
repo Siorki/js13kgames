@@ -5,7 +5,7 @@
  *   0 : main menu
  *   1 : level intro screen
  *   2 : game in progress
- *   3 : 
+ *   3 : tutorial
  *   4 : end level screen
  *
  * @constructor
@@ -24,17 +24,36 @@ function Game(controls, playField, savedData)
 		maxLevel : (savedData.hasOwnProperty('maxLevel') ?  savedData.maxLevel : 0)
 	};
 	
-	this.level=this.persistentData.maxLevel;
+	this.level=(savedData.hasOwnProperty('maxLevel') ?  savedData.maxLevel : -1);	// offer tutorial on first play
+	this.tutorialPage=0;
 	this.soundManager = new SoundManager(this.persistentData);
 	this.world = new World(controls, playField, this.soundManager);
-	this.finalLevel = this.world.loader.levels.length-1; // last level in the game
+	this.finalLevel = this.world.loader.levelCount-1; // last level in the game
 	this.wonLastLevel = false;
+	this.gameAreaLayout = [0, 1600];
+	this.state = -1;
 }
 
 Game.prototype = {
 
+	/**
+	 * Perform the asynchronous sound initialization, then proceed to launch the game
+	 */
+	init: function()
+	{
+		if (this.soundManager.initMusic()) {
+			this.launch();
+		} else
+		{
+			this.renderer.drawLoader(this.soundManager.initProgress/12);
+			setTimeout(function() {game.init();}, 10);
+		}
+	},
+
+	/**
+	 * Launch the game : set the state to main menu and start the timers (main loop and rendering loop)
+	 */
 	launch : function() {
-		this.soundManager.initMusic();
 		this.changeState(0);	// main menu
 		this.intervalId = setInterval (function() { game.mainLoop(); }, 40);
 		//requestAnimationFrame = requestAnimationFrame || webkitRequestAnimationFrame;
@@ -49,15 +68,20 @@ Game.prototype = {
 	 */
 	changeState : function(newState) {
 		this.controls.totalClear();
-		this.renderer.notifyStateChange(this.state, newState, this.world.won());
 		
-		if (newState==1 || (newState==2 && this.state==2)) 
+		if (newState==1 || (newState==2 && this.state==2) || newState==3) 
 		{	// (re)start level : load the description
 			this.world.loadLevel(this.level);
 			this.lastButtonClicked = -1;
 			this.fastForward = false;
 			this.pause = false;
 		}
+		if (newState==3)
+		{	// entering tutorial : reset to first page
+			this.tutorialPage=0;
+		}
+		// perform the graphic transition after loading (scrolling depends on level contents)
+		this.renderer.notifyStateChange(this.state, newState, this.world.won());
 		if (newState==2) {
 			this.soundManager.startMusic();
 		} else {
@@ -89,15 +113,14 @@ Game.prototype = {
 							this.toggleMusic();
 							break;
 						case 2 : // Change level
-							zone = Math.floor(2 * this.renderer.pixelRatio * (this.controls.mouseY-256) / (window.innerHeight/this.renderer.pixelRatio - 256));
 							if (this.controls.buttonAreaY==2) {
-								this.level = Math.max(0, this.level-1);
+								this.level = Math.max(-1, this.level-1);
 							} else {
 								this.level = Math.min(this.persistentData.maxLevel, this.level+1, this.finalLevel);
 							}
 							break;
 						case 3 : // start game
-							this.changeState(1);	// start level, show intro
+							this.changeState(this.level<0 ? 3 : 1);	// start tutorial or show level intro
 							break;
 					}
 				}
@@ -115,16 +138,45 @@ Game.prototype = {
 			}
 		}
 		
-		if (this.state>0) {	// intro, ingame or level end
+		if (this.state == 3) // tutorial
+		{	// change screen on a mouse click
+			
+			if (this.controls.mouseLeftButton)
+ 			{
+				this.controls.acknowledgeMouseClick();
+				if (++this.tutorialPage == 15)
+				{	// once the tutorial is over, return to main screen and select first level
+					this.changeState(0);
+					this.level = 0;
+				}
+			}
+		}
+		
+		
+		if (this.state>0 && this.state!=3) {	// intro, ingame or level end
 			// scroll the game area : mouse on a side, or left/right arrow key pressed
 			this.renderer.scrollingInProgress = 0;
-			if (this.controls.mouseY<256)
+			if (this.controls.scrollOnSwipe)
+			{
+				// touch screen : scroll by swiping / dragging the background
+				if (this.controls.mouseLeftButton && this.world.draggedTrap==-3 && this.world.dragging)
+				{
+					this.renderer.scrollScenery(this.sceneryOffsetXAtRest+this.controls.swipeScrollX, true);
+				} else {
+					this.sceneryOffsetXAtRest = this.renderer.sceneryOffsetX;
+				}
+			} 	
+			else if (this.controls.mouseY<256)
 			{	
-				if (this.controls.mouseX < 12)
+				// mouse scroll (disabled for touch screens and during tutorial) if
+				//    - cursor is on the left/right side of the play area (FFOS screen layout)
+				//    - or cursor is on the left/right side beyond the play area but not over an icon, or the intro screen is showing (no icons)
+				var localX = this.controls.mouseX-this.gameAreaLayout[0];
+				if ((localX>=0 || this.state!=2 || this.controls.toolBelowMouse==-1) && localX<12)
 				{
 					this.renderer.scrollScenery(5, false);
 				}
-				if (window.innerWidth/this.renderer.pixelRatio - this.controls.mouseX < 12)
+				if (localX>=this.gameAreaLayout[1]-12 && (localX<this.gameAreaLayout[1] || this.state!=2 || this.controls.toolBelowMouse==-1))
 				{
 					this.renderer.scrollScenery(-5, false);
 				}
@@ -192,6 +244,11 @@ Game.prototype = {
 			this.world.processControls();
 		}
 		
+		if (this.state == 3)
+		{
+			this.world.animateItems();
+		}
+		
 		if (this.state == 2 && !this.pause)
 		{
 			this.world.animateItems();
@@ -204,6 +261,8 @@ Game.prototype = {
 			{
 				if (this.world.won()) 
 				{
+					/*
+					// clay.io Achievements - disabled as they are not present in SDK v2
 					if (globalUseClay)	// use as an ifdef
 					{
 						switch (this.level)
@@ -238,6 +297,7 @@ Game.prototype = {
 							( new Clay.Achievement( { id: 5485 } ) ).award();
 						}
 					} // end if (globalUseClay)
+					*/
 					this.soundManager.playLevelWon();
 					this.wonLastLevel = (this.level == this.finalLevel);
 					if (this.level < this.finalLevel)
@@ -283,12 +343,15 @@ Game.prototype = {
 	
 	/**
 	 * Private method to synchronize local storage with current data
-	 * Uses Clay user storage if available, browser local storage otherwise
 	 */
 	storeData : function() {
+		/*
+		// Clay user storage disabled in SDK v2
 		if (globalUseClay) {
 			Clay.Player.saveUserData("WeaselsData", this.persistentData, function( response ) {} );
-		} else {
+		} else 
+		*/
+		{
 			localStorage.setItem("WeaselsData", JSON.stringify(this.persistentData));	
 		}
 	},
@@ -309,5 +372,14 @@ Game.prototype = {
 	toggleMusic : function() {
 		this.persistentData.musicOn = !this.persistentData.musicOn;
 		this.storeData();
+	},
+	
+	/**
+	 * Called when the window is resized and the window layout changes
+	 */
+	layoutChanged : function(windowLayout) {
+		this.gameAreaLayout[0] = windowLayout.playArea[0];
+		this.gameAreaLayout[1] = windowLayout.playArea[2];
+		this.controls.onLayoutChange(windowLayout);
 	}
 }

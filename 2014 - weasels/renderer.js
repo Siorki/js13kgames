@@ -2,18 +2,28 @@
  * @constructor
  */
  
-function Renderer(sceneryCanvas, overlayCanvas, background, cover, spriteImg, game, showTrapOnHover)
+function Renderer(sceneryCanvas, overlayCanvas, background, cover, spriteImg, textCanvas, game, showTrapOnHover)
 {
 	this.game = game;
 	this.sceneryCanvas = sceneryCanvas;
 	this.overlayCanvas = overlayCanvas;
+	this.textCanvas = textCanvas;
 	this.sceneryContext = sceneryCanvas.getContext("2d");
 	this.overlayContext = overlayCanvas.getContext("2d");
+	this.textContext = textCanvas.getContext("2d");
 	this.background = background;
 	this.cover = cover;
 	this.coverDown = false;
 	this.showTrapOnHover = showTrapOnHover;	// true to show the trap upon hovering (mouse), false not to show it (touch screen)
-	this.scrollingInProgress = 0;
+	this.scrollingInProgress = 0; // -1 or 1 for direction, used only to draw arrows (smaller upon scrolling)
+	this.windowLayout = {
+		pixelRatio : 1,
+		playArea : [],
+		textArea : [],
+		toolBar : [],
+		controlBar : [],
+		titleScreen : []
+	};
 	
 	// create a mirrored version of the sprite sheet
 	this.spriteSheet = document.createElement("canvas");
@@ -29,13 +39,13 @@ function Renderer(sceneryCanvas, overlayCanvas, background, cover, spriteImg, ga
 
 	// add icons background to sprite sheet
 	bufferContext.fillStyle = "#22F";
-	bufferContext.fillRect(1,560,46,40);
+	bufferContext.fillRect(1,561,46,38);
 	bufferContext.fillStyle = "#008";
-	bufferContext.fillRect(49,560,46,40);
+	bufferContext.fillRect(49,561,46,38);
 	bufferContext.fillStyle = "#C62";
-	bufferContext.fillRect(97,560,46,40);
+	bufferContext.fillRect(97,561,46,38);
 	bufferContext.fillStyle = "#620";
-	bufferContext.fillRect(145,560,46,40);
+	bufferContext.fillRect(145,561,46,38);
 	var gradient = this.overlayContext.createLinearGradient(0,560,0,590);
 	gradient.addColorStop(0, "rgba(255,255,255,.6)");  
 	gradient.addColorStop(1, "rgba(255,255,255,0)");  
@@ -49,26 +59,20 @@ function Renderer(sceneryCanvas, overlayCanvas, background, cover, spriteImg, ga
 	this.sceneryCanvas.width=1000;
 	this.sceneryOffsetX = 0;
 	
+	this.textCanvas.height=64;
+	
 	this.resizeWindow(); // define the appropriate pixel zoom for the play area
 	
 	this.frameCount = 0;
 	this.animationStartFrame = 0; // used to animate main screen
 	this.titleZoomFactor = 1;
 	this.smoke = [];
-
+	
 	// draw the title on a separate canvas, to simplify the animation on the main screen
 	this.titleBuffer=document.createElement("canvas");
 	this.titleBuffer.width=1000; 
 	this.titleBuffer.height=256;
 
-	
-	/*
-	// prepare gradient
-	this.textColor = this.overlayContext.createLinearGradient(0,262,0,272);
-	this.textColor.addColorStop(0, "#FFF");  
-	this.textColor.addColorStop(1, "#0F0");  
-	*/
-	
 	/*
 	this.sceneryContext.imageSmoothingEnabled = false;
 	this.sceneryContext.mozImageSmoothingEnabled = false;
@@ -100,49 +104,91 @@ Renderer.prototype = {
 	resizeWindow : function() {
 		var oldWidth = this.overlayCanvas.width;
 	
-		// recompute zoom level
-		this.pixelRatio = Math.max(1, Math.floor(window.innerHeight/320));
-		var iconWidth = 48, iconHeight = 40, margin = 8, textHeight = 16; // icon size, in unzoomed pixels
-		this.splitIconLine = false;
-		if (window.innerWidth < (iconWidth*this.pixelRatio*10)) // 6 icons for traps, 4 for game controls
-		{	// not enough room to show all icons on one line
-			this.pixelRatio = Math.max(1, Math.floor(window.innerHeight/(320+margin+iconHeight+textHeight)));
-			this.splitIconLine = true;
-		}
+	
 		
-		var overlayHeight = Math.ceil(window.innerHeight/this.pixelRatio);
-		var overlayWidth = Math.ceil(window.innerWidth/this.pixelRatio);
+		// recompute zoom level
+		this.windowLayout.pixelRatio = Math.max(1, Math.floor(window.innerHeight/320));
+		var iconWidth = 48, iconHeight = 40, margin = 8, textHeight = 16; // icon size, in unzoomed pixels
+		var overlayWidth = Math.ceil(window.innerWidth/this.windowLayout.pixelRatio);
+		this.windowLayout.textArea = [272, 272, 272, "center", 5, .7*overlayWidth, overlayWidth-5, 272];
+		this.windowLayout.toolBar = [0, 280, 6*iconWidth, iconHeight, iconWidth, 0];
+		this.windowLayout.controlBar = [Math.ceil(window.innerWidth/this.windowLayout.pixelRatio)-4*iconWidth, 280, 4*iconWidth, iconHeight, iconWidth, 0];
+		this.splitIconLine = false;
+		if (window.innerWidth < (iconWidth*this.windowLayout.pixelRatio*10)) // 6 icons for traps, 4 for game controls
+		{	// not enough room to show all icons on one line
+			this.windowLayout.pixelRatio = Math.max(1, Math.floor(window.innerHeight/(320+margin+iconHeight+textHeight)));
+			this.splitIconLine = true;
+			overlayWidth = Math.ceil(window.innerWidth/this.windowLayout.pixelRatio);
+			this.windowLayout.textArea = [272, 288, 288, "left", 5, 5, overlayWidth-5, 272];
+			this.windowLayout.toolBar = [0, 296, 6*iconWidth, iconHeight, iconWidth, 0];
+			this.windowLayout.controlBar = [Math.ceil(window.innerWidth/this.windowLayout.pixelRatio)-4*iconWidth, 344, 4*iconWidth, iconHeight, iconWidth, 0];
+		}
+		var overlayHeight = Math.ceil(window.innerHeight/this.windowLayout.pixelRatio);
+		this.windowLayout.playArea = [0, 0, overlayWidth, 256];
+		this.windowLayout.titleScreen = [overlayWidth, 256, 1];
+		if (window.innerHeight<640 && window.innerHeight>478) {
+			// special layout for FirefoxOS devices (Flame, ZTE Open C : 480 px ; Revolution : 540 px)
+			// to avoid falling back to a game area 320px high and a big black bar on the bottom
+			this.windowLayout.pixelRatio = 2;
+			overlayWidth = Math.ceil(window.innerWidth/this.windowLayout.pixelRatio);
+			overlayHeight = Math.ceil(window.innerHeight/this.windowLayout.pixelRatio);
+			this.windowLayout.playArea = [iconWidth, 0, overlayWidth-2*iconWidth, Math.min(256, overlayHeight)];
+			this.windowLayout.textArea = [16, 32, 16, "left", iconWidth+5, iconWidth+5, overlayWidth-iconWidth-5, overlayHeight-48];
+			this.windowLayout.toolBar = [0, 0, iconWidth, 6*iconHeight, 0, iconHeight];
+			this.windowLayout.controlBar = [overlayWidth-iconWidth, 0, iconWidth, 4*iconHeight, 0, iconHeight];
+			this.windowLayout.titleScreen = [overlayWidth, overlayHeight-64, 1];
+		}
+		this.windowLayout.titleScreen[2] = Math.min(this.windowLayout.titleScreen[1]/256, this.windowLayout.titleScreen[0]/500);
+		
+
+		// set text canvas real size, rendered size and position
+		this.textCanvas.width = overlayWidth;
+		this.textCanvas.style.width = (overlayWidth*this.windowLayout.pixelRatio)+"px";
+		this.textCanvas.style.height = (64*this.windowLayout.pixelRatio)+"px";
+		this.textCanvas.style.bottom = (512-Math.min(window.innerHeight, 640))+"px";
+
 		
 		// set overlay canvas real size
+		// At least 270 px, even if this means overflowing offscreen, to draw water at the bottom
+		overlayHeight = Math.max(overlayHeight, 270);
 		this.overlayCanvas.height=overlayHeight;
 		this.overlayCanvas.width=overlayWidth;
+		var overflowOffsetY = this.windowLayout.playArea[3]-256;
+		this.sceneryCanvas.style.top = (this.windowLayout.pixelRatio*overflowOffsetY)+"px";
+			
 		
 		// and rendered size for both canvases and background
-		this.overlayCanvas.style.width=(overlayWidth*this.pixelRatio)+"px";
-		this.overlayCanvas.style.height=(overlayHeight*this.pixelRatio)+"px";
-		this.sceneryCanvas.style.width=(1000*this.pixelRatio)+"px";
-		this.background.style.height=this.sceneryCanvas.style.height=(256*this.pixelRatio)+"px";
-		this.cover.style.height=(258*this.pixelRatio)+"px";
-		this.cover.style.top = this.coverDown?"0px":(-this.cover.style.height)+"px";
+		this.overlayCanvas.style.width=(overlayWidth*this.windowLayout.pixelRatio)+"px";
+		this.overlayCanvas.style.height=(overlayHeight*this.windowLayout.pixelRatio)+"px"; // keep a margin to draw water
+		this.sceneryCanvas.style.width=(1000*this.windowLayout.pixelRatio)+"px";
+		this.background.style.height=this.sceneryCanvas.style.height=(256*this.windowLayout.pixelRatio)+"px";
+		this.cover.style.height=(258*this.windowLayout.pixelRatio)+"px";
+		this.cover.style.top = this.coverDown?"0px":(-322*this.windowLayout.pixelRatio)+"px";
 		
 		// resize and recenter cover image to match
 		var endImageContainer = this.cover.firstChild;
-		endImageContainer.style.top=(this.pixelRatio*88)+"px";
-		endImageContainer.style.width=(this.pixelRatio*160)+"px";
-		endImageContainer.style.height=(this.pixelRatio*80)+"px";
-		endImageContainer.style.marginLeft=(-this.pixelRatio*80)+"px";
+		endImageContainer.style.top=(this.windowLayout.pixelRatio*88)+"px";
+		endImageContainer.style.width=(this.windowLayout.pixelRatio*160)+"px";
+		endImageContainer.style.height=(this.windowLayout.pixelRatio*80)+"px";
+		endImageContainer.style.marginLeft=(-this.windowLayout.pixelRatio*80)+"px";
 		
 		// set scrolling bounds + adjust location to keep the view center constant
-		this.minSceneryOffsetX = overlayWidth-this.sceneryCanvas.width;	// offset when scrolling to far right
+		this.minSceneryOffsetX = this.windowLayout.playArea[0]+this.windowLayout.playArea[2]-this.sceneryCanvas.width;	// offset when scrolling to far right
+		this.maxSceneryOffsetX = this.windowLayout.playArea[0];
 		
-		this.game.world.controls.onZoomChange(this.pixelRatio, this.splitIconLine);
-		this.scrollScenery(this.sceneryOffsetX+(overlayWidth-oldWidth)/2, true); 
+		this.game.layoutChanged(this.windowLayout);
+		var newOffset = this.sceneryOffsetX+(overlayWidth-oldWidth)/2;
+		if (this.game.state == 0) {
+			newOffset = Math.min(0, (overlayWidth-1000)/2);
+		}
+		
+		this.scrollScenery(newOffset, true); 
 	},
 	
 	/**
 	 * Scroll the scenery (and whole playing area) laterally. 
 	 * Scroll is checked against bounds.
-	 * Controls is informed to transled into world coordinates
+	 * Controls is informed to translate into world coordinates
 	 * @param dx pixel count, in canvas coordinates (e.g. zoomed)
 	 * @param absolute true means dx is an absolute value (scroll to dx), false for a relative value (scroll by dx)
 	 */
@@ -152,14 +198,33 @@ Renderer.prototype = {
 		} else {
 			this.scrollingInProgress = (dx<0?1:-1);
 		}	
-		this.game.world.controls.onHScroll(this.sceneryOffsetX = Math.min(0, Math.max(this.sceneryOffsetX+dx, this.minSceneryOffsetX)));
-		this.sceneryCanvas.style.left = (this.pixelRatio*this.sceneryOffsetX)+"px";
+		this.game.controls.onHScroll(this.sceneryOffsetX = Math.floor(Math.min(this.maxSceneryOffsetX, Math.max(this.sceneryOffsetX+dx, this.minSceneryOffsetX))));
+		this.sceneryCanvas.style.left = (this.windowLayout.pixelRatio*this.sceneryOffsetX)+"px";
+	},
+	
+	/**
+	 * Draw text on the text canvas
+	 * @param text The text to write
+	 * @param x X-coordinate of the text, left/center/right depending on the textAlign property of the canvas
+	 * @param x Y-coordinate of the text
+	 */
+	drawShadedText : function(text, x, y)
+	{
+		this.textContext.shadowOffsetX = -1;
+		this.textContext.shadowOffsetY = -1;
+		this.textContext.fillText(text, x, y);
+		this.textContext.shadowOffsetX = 2;
+		this.textContext.shadowOffsetY = 2;
+		this.textContext.fillText(text, x, y);
 	},
 	
 	/**
 	 * Draw text on the overlay canvas
+	 * @param text The text to write
+	 * @param x X-coordinate of the text, left/center/right depending on the textAlign property of the canvas
+	 * @param x Y-coordinate of the text
 	 */
-	drawShadedText : function(text, x, y)
+	drawShadedTextOnOverlay : function(text, x, y)
 	{
 		this.overlayContext.shadowOffsetX = -1;
 		this.overlayContext.shadowOffsetY = -1;
@@ -199,11 +264,11 @@ Renderer.prototype = {
 
 	
 		this.overlayContext.clearRect(0, 0, this.overlayCanvas.width, this.overlayCanvas.height);
-		if (this.coverDown && (this.game.state == 0 | this.game.state == 2))
+		if (this.coverDown && (this.game.state == 0 || this.game.state == 2 || this.game.state == 3))
 		{
 			this.coverDown = false;
-			this.cover.style.top = (-258*this.pixelRatio)+"px";
-			if (this.game.state == 2)
+			this.cover.style.top = (-322*this.windowLayout.pixelRatio)+"px";
+			if (this.game.state == 2 || this.game.state == 3)
 			{
 				this.cover.style.transition = "top 0.3s ease-in";
 			}
@@ -219,17 +284,20 @@ Renderer.prototype = {
 		}
 		
 		if (this.game.state >= 1)
-		{	// Level intro, playing/pause, end : display scenery, traps and critters
+		{	// Level intro, playing/pause, tutorial, end : display scenery, traps and critters
 		
 			this.game.world.playField.render(this.sceneryContext);
 			
 			// shake the play area + sprites whenever a mine was blown
 			//  - by moving all the playfield canvas with css
 			//  - by translating the sprites in the overlay canvas. Not the whole canvas as the lower part (icons, text) does not move
+			// combine this with a vertical offset for FFOS layout if the screen represents less than 256 zoomed pixels
+			// we hide the top of the play area in this case, the bottom is more important
 			var dt = this.game.world.timer - this.game.world.lastExplosionTime;
 			var jolt = Math.floor(Math.floor(20*Math.exp(-.2*dt))*Math.cos(dt));
-			this.sceneryCanvas.style.top = jolt+"px";
-			this.overlayContext.translate(this.sceneryOffsetX, jolt);
+			var overflowOffsetY = this.windowLayout.playArea[3]-256;
+			this.sceneryCanvas.style.top = (this.windowLayout.pixelRatio*(jolt+overflowOffsetY))+"px";
+			this.overlayContext.translate(this.sceneryOffsetX, jolt+overflowOffsetY);
 			
 			this.overlayContext.clearRect(0, 0, this.overlayCanvas.width, this.overlayCanvas.height);
 			for (var i=0; i<this.game.world.traps.length; ++i)
@@ -337,8 +405,9 @@ Renderer.prototype = {
 			// trap being added
 			if (this.game.world.currentToolIndex > -1 
 				&& this.game.world.tools[this.game.world.currentToolIndex] > 0
-				&& this.game.world.controls.mouseY<this.sceneryCanvas.height
+				&& this.game.controls.mouseInPlayArea
 				&& this.game.world.draggedTrap < (this.showTrapOnHover ? 0 : -1) // -1 (hovering only) or -2 (LMB down, adding new trap)
+				&& this.game.world.draggedTrap != -3	// scrolling
 				&& this.game.world.trapUnderMouse < 0 // click will add a new trap, not drag an existing one
 				&& this.game.state == 2)	// only during game
 			{
@@ -346,13 +415,13 @@ Renderer.prototype = {
 				var h = this.game.world.trapSize[this.game.world.currentTool][1];
 				
 				if (this.game.world.currentTool==3) { // balloons
-					this.drawBalloons(this.game.world.controls.worldX, this.game.world.controls.mouseY, 5);
+					this.drawBalloons(this.game.world.controls.worldX, this.game.world.controls.worldY, 5);
 				} else {
 				// drawing first frame, not animated, and always facing right
 					this.overlayContext.drawImage(this.spriteSheet, 
 												  0, 27*this.game.world.currentTool, 
 												  w*2, h, 
-												  this.game.world.controls.worldX-w, this.game.world.controls.mouseY-h+1, w*2, h);
+												  this.game.world.controls.worldX-w, this.game.world.controls.worldY-h+1, w*2, h);
 				}
 
 			}
@@ -373,7 +442,7 @@ Renderer.prototype = {
 			
 			this.drawSmoke();
 			this.drawWater();
-			this.overlayContext.translate(-this.sceneryOffsetX, -jolt);
+			this.overlayContext.translate(-this.sceneryOffsetX, -jolt-overflowOffsetY);
 		}
 		
 		if (this.game.state == 0)
@@ -390,38 +459,51 @@ Renderer.prototype = {
 			this.smoke = [];	// clean all smoke from previous level
 		}
 		
-		if (this.game.state == 2)
-		{	// playing or pause : show icons, timer, level data, scrolling arrows
+		if (this.game.state == 2 || this.game.state == 3)
+		{	// playing/pause or tutorial : show icons, timer, level data, scrolling arrows
 			this.drawIcons();
 			this.drawWorldInfo();
+		}
 
-			// Draw scrolling arrows
-			this.overlayContext.fillStyle="#FFF";
-			if (this.sceneryOffsetX < 0)
-			{
-				var arrowSize = (this.scrollingInProgress<0 ? 6: 10);1	
-				this.overlayContext.beginPath();
-				this.overlayContext.moveTo(12, 128);
-				this.overlayContext.lineTo(12, 128-arrowSize);
-				this.overlayContext.lineTo(12-arrowSize, 128);
-				this.overlayContext.lineTo(12, 128+arrowSize);
-				this.overlayContext.fill();
-			}
-			
-			if (this.sceneryOffsetX > this.minSceneryOffsetX)
-			{
-				var arrowSize = (this.scrollingInProgress>0 ? 6 : 10);
-				var left = window.innerWidth/this.pixelRatio - 12;
-				this.overlayContext.beginPath();
-				this.overlayContext.moveTo(left, 128);
-				this.overlayContext.lineTo(left, 128-arrowSize);
-				this.overlayContext.lineTo(left+arrowSize, 128);
-				this.overlayContext.lineTo(left, 128+arrowSize);
-				this.overlayContext.fill();
+		if (this.game.state == 2)
+		{	// playing/pause : show scrolling arrows
+			if (!this.game.controls.scrollOnSwipe)
+			{	// Draw scrolling arrows if not using a touch screen, and not in tutorial
+				this.overlayContext.fillStyle="#FFF";
+				if (this.sceneryOffsetX < 0)
+				{
+					var arrowSize = (this.scrollingInProgress<0 ? 6: 10);1	
+					this.overlayContext.translate(this.windowLayout.playArea[0], this.windowLayout.playArea[1]);
+					this.overlayContext.beginPath();
+					this.overlayContext.moveTo(12, 128);
+					this.overlayContext.lineTo(12, 128-arrowSize);
+					this.overlayContext.lineTo(12-arrowSize, 128);
+					this.overlayContext.lineTo(12, 128+arrowSize);
+					this.overlayContext.fill();
+					this.overlayContext.translate(-this.windowLayout.playArea[0], -this.windowLayout.playArea[1]);
+				}
+				
+				if (this.sceneryOffsetX > this.minSceneryOffsetX)
+				{
+					var arrowSize = (this.scrollingInProgress>0 ? 6 : 10);
+					this.overlayContext.translate(this.windowLayout.playArea[0]+this.windowLayout.playArea[2], this.windowLayout.playArea[1]);
+					this.overlayContext.beginPath();
+					this.overlayContext.moveTo(-12, 128);
+					this.overlayContext.lineTo(-12, 128-arrowSize);
+					this.overlayContext.lineTo(-12+arrowSize, 128);
+					this.overlayContext.lineTo(-12, 128+arrowSize);
+					this.overlayContext.fill();
+					this.overlayContext.translate(-this.windowLayout.playArea[0]-this.windowLayout.playArea[2], -this.windowLayout.playArea[1]);
+				}
 			}
 
 			this.drawMouseCursor(); // on top, so drawn last
 
+		}
+		
+		if (this.game.state == 3)
+		{	// tutorial
+			this.drawTutorialInfo();
 		}
 		
 		if (this.game.state == 4)
@@ -489,28 +571,21 @@ Renderer.prototype = {
 	 */
 	drawWorldInfo : function() {
 		this.overlayContext.lineWidth=1;
-		this.overlayContext.textAlign="left";
 		this.overlayContext.font="bold 14px sans-serif";
 		this.overlayContext.shadowColor="#060";
 		this.overlayContext.fillStyle = "#8F8";
 		
 		// critters inside and remaining
-		var textYFirst = 272, textYSecond = 288;
 		this.overlayContext.textAlign="center";
 		var text = this.game.world.crittersFragged + (this.game.world.fragTarget>0?"/"+this.game.world.fragTarget:"")+" fragged, "+this.game.world.crittersInside+" in, "+this.game.world.crittersExited+" out";
-		if (this.splitIconLine) { // text on two lines : this panel on the beginning of the second line
-			this.overlayContext.textAlign="left";
-			this.drawShadedText(text, 5, textYSecond);
-		} else { // text on one line : this panel almost in the middle
-			this.overlayContext.textAlign="center";
-			this.drawShadedText(text, .7*window.innerWidth/this.pixelRatio, textYFirst);
-		}
+		this.overlayContext.textAlign=this.windowLayout.textArea[3];
+		this.drawShadedTextOnOverlay(text, this.windowLayout.textArea[5], this.windowLayout.textArea[1]);
 
 		// time left
 		this.overlayContext.textAlign="right";
-		var time =  Math.floor((this.game.world.totalTime - this.game.world.timer)/25);
+		var time =  Math.max(0, Math.floor((this.game.world.totalTime - this.game.world.timer)/25));	// floored to zero, for the tutorial
 		text = Math.floor(time/60)+":"+((time%60)<10 ? "0":"")+(time%60);
-		this.drawShadedText(text, window.innerWidth/this.pixelRatio-5, this.splitIconLine?textYSecond:textYFirst);
+		this.drawShadedTextOnOverlay(text, this.windowLayout.textArea[6], this.windowLayout.textArea[2]);
 		
 		// current tool
 		this.overlayContext.textAlign="left";
@@ -552,7 +627,7 @@ Renderer.prototype = {
 		text = prefix + ["", "Landmine", "Fan", "Flamethrower", "Balloons", "Variable", "Shotgun",
 						 "Exit", "Entrance", "Cannon Tower", "Dynamite", "Building Block",  "", "", "", "", "", 
 						 "Pause", "Fast forward", "Restart level", "Return to main menu"][1+toolIndex] + suffix;
-		this.drawShadedText(text, 5, textYFirst);
+		this.drawShadedTextOnOverlay(text, this.windowLayout.textArea[4], this.windowLayout.textArea[0]);
 		this.overlayContext.shadowOffsetX = 0;
 		this.overlayContext.shadowOffsetY = 0;
 	},
@@ -566,23 +641,24 @@ Renderer.prototype = {
 	drawIcons : function() {
 		// trap toolbar (blue background)
 		var tools = this.game.world.tools;
-		var tL=0, tT=(this.splitIconLine?296:280), tW = 46, tH = 40, tS = 2;
 		this.overlayContext.textAlign="center";
 		this.overlayContext.font="bold italic 14px sans-serif";
 		for (var i=0; i<tools.length; ++i)
 		{
-			this.overlayContext.drawImage(this.spriteSheet, this.game.world.highlightedTool == i ? 48 : 0, 560, 48, 40, tL+tW*i+tS*i, tT, 48, 40);
+			var iconX = this.windowLayout.toolBar[0]+i*this.windowLayout.toolBar[4];
+			var iconY = this.windowLayout.toolBar[1]+i*this.windowLayout.toolBar[5];
+			this.overlayContext.drawImage(this.spriteSheet, this.game.world.highlightedTool == i ? 48 : 0, 560, 48, 40, iconX, iconY, 48, 40);
 			if (i==3) {
-				this.drawBalloons(tL+tW*i+tS*i+17, tT+37, 5);
+				this.drawBalloons(iconX+17, iconY+37, 5);
 			} else {
-				this.overlayContext.drawImage(this.spriteSheet, (i?0:81), (i==4?this.game.world.variableTool*27:(i?27*i:135)), 35, 27, tL+tW*i+tS*i+10, tT+8, 35, 27);
+				this.overlayContext.drawImage(this.spriteSheet, (i?0:81), (i==4?this.game.world.variableTool*27:(i?27*i:135)), 35, 27, iconX+10, iconY+8, 35, 27);
 			}
 			var text = (tools[i]<0 ? "oo" : tools[i]);			
 			this.overlayContext.strokeStyle="#000";
 			this.overlayContext.lineWidth=3;
-			this.overlayContext.strokeText(text, tL+tW*i+tS*i+.5*tW+10, tT+36);
+			this.overlayContext.strokeText(text, iconX+33, iconY+36);
 			this.overlayContext.fillStyle="#FFF";
-			this.overlayContext.fillText(text, tL+tW*i+tS*i+.5*tW+10, tT+36);
+			this.overlayContext.fillText(text, iconX+33, iconY+36);
 
 		}
 
@@ -590,17 +666,18 @@ Renderer.prototype = {
 		this.overlayContext.strokeStyle="#F00";
 		if (this.game.world.currentToolIndex>-1) {
 			this.overlayContext.beginPath();
-			this.overlayContext.rect(tL+(tW+tS)*this.game.world.currentToolIndex+1, tT, tW, tH);
+			this.overlayContext.rect(this.windowLayout.toolBar[0] + this.game.world.currentToolIndex*this.windowLayout.toolBar[4]+1,
+									 this.windowLayout.toolBar[1] + this.game.world.currentToolIndex*this.windowLayout.toolBar[5]+1, 46, 38);
 			this.overlayContext.stroke();
 		}
 
 		// controls toolbar (brown background)
 		this.overlayContext.strokeStyle="#000";
-		var tD = Math.floor(window.innerWidth/this.pixelRatio)-4*(tW+tS);
-		tT = this.splitIconLine?344:280;
 		for (var i=0; i<4; ++i)
 		{
-			this.overlayContext.drawImage(this.spriteSheet, this.game.world.highlightedTool == i+16 ? 144 : 96, 560, 48, 40, tL+tD+tW*i+tS*i, tT, 48, 40);
+			var iconX = this.windowLayout.controlBar[0]+i*this.windowLayout.controlBar[4];
+			var iconY = this.windowLayout.controlBar[1]+i*this.windowLayout.controlBar[5];
+			this.overlayContext.drawImage(this.spriteSheet, this.game.world.highlightedTool == i+16 ? 144 : 96, 560, 48, 40, iconX, iconY, 48, 40);
 			var text = ["| |", ">>", "reset", "menu"][i];
 			if ((i==0 && this.game.pause) // paused
 				|| (i==1 && this.game.fastForward)) // accelerated game
@@ -609,9 +686,9 @@ Renderer.prototype = {
 					text = ">";
 				}
 			}
-			this.overlayContext.strokeText(text, tL+tD+tW*i+tS*i+.5*tW, tT+30);
+			this.overlayContext.strokeText(text, iconX+23, iconY+30);
 			this.overlayContext.fillStyle="#FFF";
-			this.overlayContext.fillText(text, tL+tD+tW*i+tS*i+.5*tW, tT+30);
+			this.overlayContext.fillText(text, iconX+23, iconY+30);
 
 		}
 	},
@@ -629,12 +706,19 @@ Renderer.prototype = {
 	drawMouseCursor : function()
 	{
 		var cursorId = "default";
-		if (this.game.world.controls.mouseY<this.sceneryCanvas.height)
+		if (this.game.controls.mouseInPlayArea)
 		{
-			if (this.game.world.draggedTrap != -1) 
+			if (this.game.world.draggedTrap > -1 || this.game.world.draggedTrap == -2)
 			{	// LMB down, moving existing trap (>=0) or adding new trap (-2)
-				cursorId = (this.game.world.dragValid ? "pointer" : (this.game.world.dragging ? "no-drop" : "ew-resize"));
-			} else if (this.game.world.trapUnderMouse != -1)
+				cursorId = (this.game.world.dragValid ? "pointer" : "ew-resize");
+			} 
+			else if (this.game.world.draggedTrap == -3) 
+			{	// LMB down, dragging to scroll (-3, touch screen only)
+				cursorId = (this.game.world.dragValid ? "ew-resize" : 
+							(this.game.world.currentToolIndex == this.game.world.tools.length-1 ? 
+								(this.game.world.shotgunReloadTime ? "wait" : "crosshair") : "pointer"));
+			}
+			else if (this.game.world.trapUnderMouse != -1)
 			{	// ready to pickup trap and move it
 				cursorId = "pointer";
 			} else if (this.game.world.currentToolIndex == this.game.world.tools.length-1) 
@@ -653,13 +737,15 @@ Renderer.prototype = {
 	 */
 	drawLevelDescription : function() 
 	{
-		var textY = 272;
-		this.overlayContext.lineWidth=1;
-		this.overlayContext.textAlign="left";
-		this.overlayContext.font="bold 14px sans-serif";
-		this.overlayContext.shadowColor="#060";
-		this.overlayContext.fillStyle = "#8F8";
+		this.textContext.clearRect(0, 0, this.textCanvas.width, this.textCanvas.height);
+		var textY = 12;
+		this.textContext.lineWidth=1;
+		this.textContext.textAlign="left";
+		this.textContext.font="bold 14px sans-serif";
+		this.textContext.shadowColor="#060";
+		this.textContext.fillStyle = "#8F8";
 
+		
 		var text = "Level "+(1+this.game.level)+" - "+this.game.world.levelTitle;
 		this.drawShadedText(text, 20, textY);
 		
@@ -685,18 +771,180 @@ Renderer.prototype = {
 	},
 	
 	/**
+	 * Display the different steps of the tutorial
+	 *  - highlight or the different tools
+	 *  - write the associated explanation text
+	 */
+	drawTutorialInfo : function()
+	{
+		var allTutorialTexts = [
+			[
+				"Your goal is to prevent weasels from",
+				"reaching the exit by any means.",
+				"A mission statement is given for each level,",
+				"you may be asked to eliminate some or",
+				"all of them, or block the way and hold for",
+				"a given time."
+			],
+			[
+				"Weasels are smarter than the average",
+				"lemming and will evade traps, find their way",
+				"around and avoid falling to their demise.",
+				"Blockers prevent them from jumping off",
+				"a cliff. Builders create stairs that they can",
+				"all climb to reach higher platforms."
+			],
+			[	
+				"This is an entrance. Weasels come this way",
+				"at a regular pace. In difficult levels there",
+				"can be several of them throughout",
+				"the place. Entrances cannot be moved."
+			],
+			[
+				"This is an exit and weasels will endeavor to",
+				"reach it. There may also be several ways out",
+				"of the level. Exits can usually not be moved."
+			],
+			[
+				"These traps will help you defend against",
+				"weasels. Their availability depends on",
+				"the level. Drag a trap from the toolbar to",
+				"the playfield, or select it first then tap",
+				"or click to place it. You can also drag",
+				"an already installed trap to relocate it."
+			],
+			[
+				"Landmines explode when a weasel comes",
+				"nearby. They obey gravity so you can drop",
+				"them from above. While unexploded they",
+				"can be freely moved around."
+			],
+			[	
+				"Fans give lateral speed to already airborne",
+				"weasels. The closer they are, the stronger",
+				"the push. They are ineffective against walkers.",
+				"Click on an already installed fan to",
+				"turn it around."
+			],
+			[
+				"Flamethrowers deal lots of damage at close",
+				"range but produce a heavy smoke that",
+				"obscures the view. Click to turn them",
+				"around. Weasels are afraid of fire and thus",
+				"will try to walk or climb around these."
+			],
+			[
+				"Weasels will grab balloons on their way",
+				"and become airborne. They will let them go",
+				"once they are satisfied with the flight.",
+				"Some levels come with balloon stands",
+				"already installed."
+			],
+			[
+				"Cannon towers shoot at the closest weasel.",
+				"They are a slow yet efficient weapon.",
+				"Pay attention as they cannot be moved",
+				"once installed."
+			],
+			[
+				"Your shotgun is a decent weapon,",
+				"however weasels carry a heavy shield",
+				"which makes it inefficient against them.",
+				"It still serves a purpose though."
+			],
+			[
+				"New traps will be provided in the upper levels.",
+				"They are up to you to discover."
+			],
+			[
+				"The toolbar on the right hand side is used",
+				"to pause the game, fast forward, restart",
+				"the level or return to the main menu."
+			],
+			[
+				"Actual levels are wider than the screen,",
+				"and can be scrolled left and right. Bring",
+				"your mouse cursor to the edge of",
+				"the screen, or swipe on touch screens."
+			],
+			[	
+				"I hear weasels coming. It is now up to you !"
+			]
+				
+		];
+		
+		var allTextLocations = [80, 80, 110, 150, 50,
+								80, 80, 80, 80,  80,
+								80, 80, 80, 80,  80];
+		var allHighlightedAreas = [
+									0, 
+									0,
+									[400+this.sceneryOffsetX, 74+this.windowLayout.playArea[3]-256, 23],
+									[639+this.sceneryOffsetX, 119+this.windowLayout.playArea[3]-256, 25],
+									this.windowLayout.toolBar,
+									[this.windowLayout.toolBar[0], this.windowLayout.toolBar[1], 48, 40],
+									[this.windowLayout.toolBar[0]+this.windowLayout.toolBar[4], this.windowLayout.toolBar[1]+this.windowLayout.toolBar[5], 48, 40],
+									[this.windowLayout.toolBar[0]+2*this.windowLayout.toolBar[4], this.windowLayout.toolBar[1]+2*this.windowLayout.toolBar[5], 48, 40],
+									[this.windowLayout.toolBar[0]+3*this.windowLayout.toolBar[4], this.windowLayout.toolBar[1]+3*this.windowLayout.toolBar[5], 48, 40],
+									[this.windowLayout.toolBar[0]+4*this.windowLayout.toolBar[4], this.windowLayout.toolBar[1]+4*this.windowLayout.toolBar[5], 48, 40],
+									[this.windowLayout.toolBar[0]+5*this.windowLayout.toolBar[4], this.windowLayout.toolBar[1]+5*this.windowLayout.toolBar[5], 48, 40],
+									0,
+									this.windowLayout.controlBar,
+									0,
+									0
+								];
+		
+		var tutorialText = allTutorialTexts[this.game.tutorialPage];
+		var textLocation = allTextLocations[this.game.tutorialPage];
+		var highlightedArea = allHighlightedAreas[this.game.tutorialPage];
+		
+		this.overlayContext.fillStyle = "rgba(0, 0, 0, .7)";
+		
+		this.overlayContext.beginPath();
+		this.overlayContext.rect(0, 0, this.overlayCanvas.width, this.overlayCanvas.height);
+		if (highlightedArea !== false) {
+			if (highlightedArea.length > 3)
+			{
+				this.overlayContext.moveTo(highlightedArea[0], highlightedArea[1]);
+				this.overlayContext.lineTo(highlightedArea[0], highlightedArea[1]+highlightedArea[3]);
+				this.overlayContext.lineTo(highlightedArea[0]+highlightedArea[2], highlightedArea[1]+highlightedArea[3]);
+				this.overlayContext.lineTo(highlightedArea[0]+highlightedArea[2], highlightedArea[1]);
+				this.overlayContext.lineTo(highlightedArea[0], highlightedArea[1]);
+			} else {
+				this.overlayContext.arc(highlightedArea[0], highlightedArea[1], highlightedArea[2], 0, 2*Math.PI, true);
+			}
+		}
+		this.overlayContext.closePath();
+		this.overlayContext.fill();
+
+		this.overlayContext.lineWidth=1;
+		this.overlayContext.font="bold 14px sans-serif";
+		this.overlayContext.shadowColor="#060";
+		this.overlayContext.fillStyle = "#8F8";
+		this.overlayContext.textAlign="center";
+		for (var i=0; i<tutorialText.length; ++i)
+		{
+			this.drawShadedTextOnOverlay(tutorialText[i], this.overlayCanvas.width>>1, textLocation+30*i);
+		}
+		this.overlayContext.shadowOffsetX = 0;
+		this.overlayContext.shadowOffsetY = 0;
+
+	},
+	
+	/**
 	 * Display level debriefing
 	 *  - result obtained
 	 *  - result expected
 	 */
 	drawLevelEndText : function()
 	{
-		var textY = 272;
-		this.overlayContext.lineWidth=1;
-		this.overlayContext.textAlign="left";
-		this.overlayContext.font="bold 14px sans-serif";
-		this.overlayContext.shadowColor="#060";
-		this.overlayContext.fillStyle = "#8F8";
+		this.textContext.clearRect(0, 0, this.textCanvas.width, this.textCanvas.height);
+		var textY = 12;
+		this.textContext.lineWidth=1;
+		this.textContext.textAlign="left";
+		this.textContext.font="bold 14px sans-serif";
+		this.textContext.shadowColor="#060";
+		this.textContext.fillStyle = "#8F8";
 		var won = this.game.world.won();
 		var text = this.game.world.fragTarget ? (this.game.world.crittersFragged ? this.game.world.crittersFragged : "Not a single")+" weasel"+(this.game.world.crittersFragged?"s":"")+" killed."
 											  : (won ? "No weasel made it to the exit." : "A weasel escaped ! ");
@@ -805,65 +1053,70 @@ Renderer.prototype = {
 		this.sceneryContext.clearRect(0, 0, this.titleBuffer.width, this.titleBuffer.height);
 //		var zoomLevel = 1+1/(1+time);
 		this.titleZoomFactor = (1+ 6*this.titleZoomFactor)/7;
-		this.sceneryContext.drawImage(this.titleBuffer, 0, 0, 1000, 256, 500-500*this.titleZoomFactor, 128-128*this.titleZoomFactor, 1000*this.titleZoomFactor, 256*this.titleZoomFactor);
+		var realFactor = this.titleZoomFactor*this.windowLayout.titleScreen[2];
+		var overflowOffsetY = 256-this.windowLayout.playArea[3];
+		this.sceneryContext.drawImage(this.titleBuffer, 0, 0, 1000, 256, 500-500*realFactor, overflowOffsetY+.4*this.windowLayout.titleScreen[1]-128*realFactor, 1000*realFactor, 256*realFactor);
 		
 		
-		// scolling subtitle 
+		// scrolling subtitle 
 		this.sceneryContext.strokeStyle="#080";
 		this.sceneryContext.lineWidth=2;
 		this.sceneryContext.font="15pt Verdana";
 		this.sceneryContext.textAlign="center";
+
+		var scrollTextY = overflowOffsetY+this.windowLayout.titleScreen[1]*240/256;
 		
-		
-		this.sceneryContext.strokeText("SECOND EDITION", 2000-((2*time+1200)%2500), 240);
-		this.sceneryContext.strokeText("EXTRA LEVELS", 2000-((2*time+980)%2500), 240);
-		this.sceneryContext.strokeText("NEW TRAPS", 2000-((2*time+800)%2500), 240);
-		this.sceneryContext.strokeText("AND STILL THE SAME PESKY CRITTERS.", 2000-((2*time+500)%2500), 240);
-		this.sceneryContext.strokeText("WARNING, CONTAINS HAZARDOUS MATERIAL", 2000-((2*time)%2500), 240);
-		this.sceneryContext.strokeText("HANDLE WITH CARE AND WEAR BITE RESISTANT GLOVES.", 2000-((2*time-600)%2500), 240);
+		this.sceneryContext.strokeText("SECOND EDITION", 2000-((2*time+1200)%2500), scrollTextY);
+		this.sceneryContext.strokeText("EXTRA LEVELS", 2000-((2*time+980)%2500), scrollTextY);
+		this.sceneryContext.strokeText("NEW TRAPS", 2000-((2*time+800)%2500), scrollTextY);
+		this.sceneryContext.strokeText("AND STILL THE SAME PESKY CRITTERS.", 2000-((2*time+500)%2500), scrollTextY);
+		this.sceneryContext.strokeText("WARNING, CONTAINS HAZARDOUS MATERIAL", 2000-((2*time)%2500), scrollTextY);
+		this.sceneryContext.strokeText("HANDLE WITH CARE AND WEAR BITE RESISTANT GLOVES.", 2000-((2*time-600)%2500), scrollTextY);
 
 		
 		// draw buttons below title screen
-		var areaHalfWidth = window.innerWidth / 8 / this.pixelRatio;
+		var areaHalfWidth = this.windowLayout.titleScreen[0] / 8;
 		this.overlayContext.lineWidth=1;
-		var gradient = this.overlayContext.createLinearGradient(0,262,0,314);
+		var gradient = this.overlayContext.createLinearGradient(0,this.windowLayout.titleScreen[1]+6,0,this.windowLayout.titleScreen[1]+58);
 		gradient.addColorStop(0, "rgba(255,255,255,.8)");  
 		gradient.addColorStop(1, "rgba(255,255,255,.1)");  
 	
+		this.overlayContext.fillStyle = "#000";
+		this.overlayContext.fillRect(0, this.windowLayout.titleScreen[1], this.windowLayout.titleScreen[0], 64);
 		for (var i=0; i<4; ++i)
 		{
 			this.overlayContext.fillStyle = (this.game.controls.buttonAreaX == i && this.game.controls.buttonAreaY>0 && i!=2 ? "#b43" : "#413");
-			this.overlayContext.fillRect(1+areaHalfWidth*i*2, 258, 2*areaHalfWidth-2, 60);
+			this.overlayContext.fillRect(1+areaHalfWidth*i*2, this.windowLayout.titleScreen[1]+2, 2*areaHalfWidth-2, 60);
 			this.overlayContext.fillStyle = gradient;
-			this.overlayContext.fillRect(5+areaHalfWidth*i*2, 262, 2*areaHalfWidth-10, 52);
+			this.overlayContext.fillRect(5+areaHalfWidth*i*2, this.windowLayout.titleScreen[1]+6, 2*areaHalfWidth-10, 52);
 		}
 		
 		if (this.game.level < this.game.finalLevel)
 		{	// arrow up : only if there is at least one level above
 			this.overlayContext.fillStyle = (this.game.controls.buttonAreaX == 2 && this.game.controls.buttonAreaY==1 ? "#b43" : "#413");
 			this.overlayContext.beginPath();
-			this.overlayContext.moveTo(areaHalfWidth*4.5, 276);
-			this.overlayContext.lineTo(areaHalfWidth*5.5, 276);
-			this.overlayContext.lineTo(areaHalfWidth*5, 266);
+			this.overlayContext.moveTo(areaHalfWidth*4.5, this.windowLayout.titleScreen[1]+20);
+			this.overlayContext.lineTo(areaHalfWidth*5.5, this.windowLayout.titleScreen[1]+20);
+			this.overlayContext.lineTo(areaHalfWidth*5, this.windowLayout.titleScreen[1]+10);
 			this.overlayContext.fill();
 		}
-		if (this.game.level > 0)
+		if (this.game.level > -1)
 		{	// arrow down
 			this.overlayContext.fillStyle = (this.game.controls.buttonAreaX == 2 && this.game.controls.buttonAreaY==2 ? "#b43" : "#413");
 			this.overlayContext.beginPath();
-			this.overlayContext.moveTo(areaHalfWidth*4.5, 298);
-			this.overlayContext.lineTo(areaHalfWidth*5.5, 298);
-			this.overlayContext.lineTo(areaHalfWidth*5, 308);
+			this.overlayContext.moveTo(areaHalfWidth*4.5, this.windowLayout.titleScreen[1]+42);
+			this.overlayContext.lineTo(areaHalfWidth*5.5, this.windowLayout.titleScreen[1]+42);
+			this.overlayContext.lineTo(areaHalfWidth*5, this.windowLayout.titleScreen[1]+52);
 			this.overlayContext.fill();
 		}
 		if (this.game.level == this.game.persistentData.maxLevel && this.game.level < this.game.finalLevel)
 		{	// draw a lock if the level above exists and is not accessible
-			this.overlayContext.drawImage(this.spriteSheet, 71, 135, 9, 11, areaHalfWidth*5-4, 267, 9, 11);
+			this.overlayContext.drawImage(this.spriteSheet, 71, 135, 9, 11, areaHalfWidth*5-4, this.windowLayout.titleScreen[1]+11, 9, 11);
 		}
 		
 		
 
-		var textY = 292;
+		var textY = this.windowLayout.titleScreen[1]+36;
 		this.overlayContext.fillStyle = "#FFF";
 		this.overlayContext.lineWidth=1;
 		this.overlayContext.shadowColor = "#413";
@@ -871,24 +1124,20 @@ Renderer.prototype = {
 		this.overlayContext.font="bold italic 16px sans-serif";
 		
 		var text = "SFX : "+(this.game.persistentData.soundOn ? "ON" : "OFF");
-		this.drawShadedText(text, areaHalfWidth, textY);
+		this.drawShadedTextOnOverlay(text, areaHalfWidth, textY);
 		
 		text = "MUSIC : "+(this.game.persistentData.musicOn ? "ON" : "OFF");
-		this.drawShadedText(text, 3*areaHalfWidth, textY);
+		this.drawShadedTextOnOverlay(text, 3*areaHalfWidth, textY);
 		
-		text = "LEVEL "+(this.game.level<9?"0":"")+(1+this.game.level);
-		this.drawShadedText(text, 5*areaHalfWidth, textY);
+		text = (this.game.level==-1?"TUTORIAL":"LEVEL "+(this.game.level<9?"0":"")+(1+this.game.level));
+		this.drawShadedTextOnOverlay(text, 5*areaHalfWidth, textY);
 
 		text = "START";
-		this.drawShadedText(text, 7*areaHalfWidth, textY);
+		this.drawShadedTextOnOverlay(text, 7*areaHalfWidth, textY);
 		
 		this.overlayContext.shadowOffsetX = 0;
 		this.overlayContext.shadowOffsetY = 0;
-/*
-		textY+=16;
-		text = "PASSWORD : NONE";
-		this.overlayContext.strokeText(text, 5*areaHalfWidth, textY);
-		*/
+
 	},
 	
 	/**
@@ -918,6 +1167,35 @@ Renderer.prototype = {
 		}
 		bufferContext.putImageData(imageData, 0, 0);
 	},
+	
+	/**
+	 * Rendering method for the loading screen
+	 * @param progress : progress value between 0 and 1
+	 */
+	drawLoader : function(progress)
+	{
+		this.overlayContext.fillStyle = "#FFF";
+		this.overlayContext.lineWidth=4;
+		this.overlayContext.shadowColor = "#000";
+		this.overlayContext.textAlign="center";
+		this.overlayContext.font="bold italic 40px sans-serif";
+		this.drawShadedTextOnOverlay("LOADING", this.windowLayout.titleScreen[0]>>1, 256-this.windowLayout.playArea[3]+(this.windowLayout.titleScreen[1]>>1));
+		var textSize = this.overlayContext.measureText("LOADING");
+		var textLeft = (this.windowLayout.titleScreen[0]-textSize.width)>>1;
+		this.overlayContext.save();
+		this.overlayContext.shadowColor="#060";
+		this.overlayContext.fillStyle = "#8F8";
+		this.overlayContext.moveTo(textLeft,0);
+		this.overlayContext.lineTo(textLeft+progress*textSize.width, 0);
+		this.overlayContext.lineTo(textLeft+progress*textSize.width, 256);
+		this.overlayContext.lineTo(textLeft, 256);
+		this.overlayContext.clip();
+		this.drawShadedTextOnOverlay("LOADING", this.windowLayout.titleScreen[0]>>1, 256-this.windowLayout.playArea[3]+(this.windowLayout.titleScreen[1]>>1));
+		this.overlayContext.restore();
+		this.overlayContext.shadowOffsetX = 0;
+		this.overlayContext.shadowOffsetY = 0;
+	},
+	
 	
 	/**
 	 * Implementation of the explosion listener
@@ -950,7 +1228,7 @@ Renderer.prototype = {
 	 * Changes the picture on the cover div (won, lost, none)
 	 
 	 *
-	 * Values for state : 0 main menu, 	1 level intro screen, 2 level ingame, 4 level end screen
+	 * Values for state : 0 main menu, 	1 level intro screen, 2 level ingame, 3 tutorial, 4 level end screen
 	 * @param oldState the former state
 	 * @param newState the new state
 	 * @param won true if the player won, false if lost
@@ -965,7 +1243,16 @@ Renderer.prototype = {
 		// Center the view for the main menu
 		if (newState==0)
 		{
-			this.scrollScenery(this.minSceneryOffsetX>>1, true);
+			this.scrollScenery((this.minSceneryOffsetX+this.maxSceneryOffsetX)>>1, true);
+		}
+		
+		// (Re)start level : make sure the entrance is visible on screen
+		if (newState==1 || (newState == 2 && oldState == 2))
+		{
+			var range = this.game.world.getImportantLocations();
+			var startX = (range[0]+range[1]-this.windowLayout.playArea[2])>>1; // if possible, center between leftmost and rightmost
+			startX = Math.min(startX, range[0]-60);	// make sure the leftmost item is always shown
+			this.scrollScenery(-startX+this.windowLayout.playArea[0], true);
 		}
 	}
 

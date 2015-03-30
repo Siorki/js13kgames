@@ -16,6 +16,11 @@ div, canvas{
     -ms-interpolation-mode: nearest-neighbor;
 }
 
+canvas#introText {
+	top:auto;
+	bottom:0px;
+}
+
 #bg {
   background: #004; /* fallback for browser not supporting linear gradients */
   background: linear-gradient( #013, #213, #413, #813, #e73); /* Colors from SotB */
@@ -60,7 +65,7 @@ img#endImage {
 		<div id="bg"></div>
 		<canvas id="c"></canvas>
 		<canvas id="o"></canvas>
-		<div id="cover"><div id="endImageContainer"><img id="endImage" src="levelEnd.png"/></div></div>
+		<div id="cover"><div id="endImageContainer"><img id="endImage" src="levelEnd.png"/></div><canvas id="introText"></canvas></div>
 		<img id="s" src="sprites.png" />
 		<img id="noise" src="noise.png" />
 		</div>

@@ -5,13 +5,23 @@
 function LevelLoader()
 {
 	this.levels = [
+		[ 
+			"", // Tutorial
+			5, // number of weasels 
+			2, // hit goal
+			300, // time in seconds 
+			[1, 1, 1, 1, 1, -1],	// 1 of each, for the exhibition 
+			[7, 400, 85, 6, 640, 129],
+			[2, 376, 160, 232, 96,
+			 2, 608, 128, 64, 128]
+		],
 		[	
 			"Walking through a minefield", // Grass 1
-			20,	// number of weasels 
-			20, // hit goal
-			120,	// time in seconds
+			20,	
+			20, 
+			120,	
 			[15, 0, 0, 0, 0, -1], // 15 landmines
-			[7, 190, 20, 6, 864, 172],	// entrance and exit
+			[7, 190, 80, 6, 864, 172],	// entrance and exit
 			[2, 100, 160, 800, 96,
 			 239, 100, 150, 2, 60,
 			 239, 900, 160, 2, 60]
@@ -186,7 +196,7 @@ function LevelLoader()
 			10,
 			120,
 			[0, 3, 0, 0, 0, -1], // 3 fans
-			[7, 300, 20, 6, 750, 207],
+			[7, 300, 48, 6, 750, 207],
 			[1, 200, 60, 544, 16,
 			 1, 200, 208, 608, 48]
 		],
@@ -222,7 +232,7 @@ function LevelLoader()
 			15,
 			120,
 			[0, 1, 1, 0, 0, -1], // 1 fan, 1 flamethrower
-			[7, 250, 16, 6, 200, 223],
+			[7, 250, 48, 6, 200, 223],
 			[1, 224, 80, 320, 16,
 			 1, 352, 128, 320, 16,
 			 1, 320, 176, 448, 16,
@@ -422,13 +432,15 @@ function LevelLoader()
 			]
 		]
 	];
+	this.levelCount = this.levels.length-1; // not counting the tutorial
 }
 
 LevelLoader.prototype = {
 
 	getLevel : function(index)
 	{
-		if (index<0 || index>=this.levels.length) {
+		++index; // -1 means the tutorial, array index starts at 0
+		if (index<0 || index>this.levelCount) {
 			index = 0;
 		}
 		return this.levels[index];

@@ -12,55 +12,76 @@ function SoundManager(persistentData) {
 			this.audioTagSupport = (wavSupported=="probably" || wavSupported=="maybe");
 		} catch (e) {
 			this.audioTagSupport = false;
-		}		
+		}
+	this.initProgress = 0;
 }
 
 SoundManager.prototype = {
 	
 	/**
 	 * Create all the audio tags instances with the associated waves compiled by Soundbox Lite
+	 * Designed to be called in an asynchronous loop, iterates until the generation is complete
+	 * @return true if init completed, false if more calls are needed
 	 */
 	initMusic : function() {
 		if (this.audioTagSupport) {
-			
-			var songGen = new CPlayer();
-			songGen.init(songShotgunAndBounce);
-			songGen.generate();
-			this.audioShotgun = new Audio(URL.createObjectURL(new Blob([songGen.createWave()], {type: "audio/wav"})));
-			songGen.generate();
-			this.audioShotgunAndBounce = new Audio(URL.createObjectURL(new Blob([songGen.createWave()], {type: "audio/wav"})));
-			
-			songGen = new CPlayer();
-			songGen.init(songExplosion);
-			songGen.generate();
-			this.audioExplosion = new Audio(URL.createObjectURL(new Blob([songGen.createWave()], {type: "audio/wav"})));
-			
-			songGen = new CPlayer();
-			songGen.init(songExit);
-			songGen.generate();
-			this.audioExit = new Audio(URL.createObjectURL(new Blob([songGen.createWave()], {type: "audio/wav"})));
-			
-			songGen = new CPlayer();
-			songGen.init(songLevelWon);
-			songGen.generate();
-			songGen.generate();
-			this.audioLevelWon = new Audio(URL.createObjectURL(new Blob([songGen.createWave()], {type: "audio/wav"})));
-			
-			songGen = new CPlayer();
-			songGen.init(songLevelLost);
-			songGen.generate();
-			this.audioLevelLost = new Audio(URL.createObjectURL(new Blob([songGen.createWave()], {type: "audio/wav"})));
-			
-			songGen = new CPlayer();
-			songGen.init(songMusic);
-			songGen.generate();
-			songGen.generate();
-			songGen.generate();
-			songGen.generate();
-			songGen.generate();
-			this.audioMusic = new Audio(URL.createObjectURL(new Blob([songGen.createWave()], {type: "audio/wav"})));
-			
-			this.audioMusic.loop = true;
+			switch (this.initProgress)
+			{
+				case 0 :
+					this.songGen = new CPlayer();
+					this.songGen.init(songShotgunAndBounce);
+					break;
+				case 2 : 
+					this.songGen = new CPlayer();
+					this.songGen.init(songExplosion);
+					break;
+				case 3 :
+					this.songGen = new CPlayer();
+					this.songGen.init(songExit);
+					break;
+				case 4 : 
+					this.songGen = new CPlayer();
+					this.songGen.init(songLevelWon);
+					break;
+				case 6 : 
+					this.songGen = new CPlayer();
+					this.songGen.init(songLevelLost);
+					break;
+				case 7 : 
+					this.songGen = new CPlayer();
+					this.songGen.init(songMusic);
+					break;
+			}
+			this.songGen.generate();
+			switch (this.initProgress)
+			{
+				case 0 :
+					this.audioShotgun = new Audio(URL.createObjectURL(new Blob([this.songGen.createWave()], {type: "audio/wav"})));
+					break;
+				case 1 : 
+					this.audioShotgunAndBounce = new Audio(URL.createObjectURL(new Blob([this.songGen.createWave()], {type: "audio/wav"})));
+					break;
+				case 2 :
+					this.audioExplosion = new Audio(URL.createObjectURL(new Blob([this.songGen.createWave()], {type: "audio/wav"})));
+					break;
+				case 3 :
+					this.audioExit = new Audio(URL.createObjectURL(new Blob([this.songGen.createWave()], {type: "audio/wav"})));
+					break;
+				case 5 :
+					this.audioLevelWon = new Audio(URL.createObjectURL(new Blob([this.songGen.createWave()], {type: "audio/wav"})));
+					break;
+				case 6 :
+					this.audioLevelLost = new Audio(URL.createObjectURL(new Blob([this.songGen.createWave()], {type: "audio/wav"})));
+					break;
+				case 11 : 
+					this.audioMusic = new Audio(URL.createObjectURL(new Blob([this.songGen.createWave()], {type: "audio/wav"})));
+					this.audioMusic.loop = true;
+					break;
+			}
+			++this.initProgress;
+			return (this.initProgress==12);
+		} else {
+			return true;
 		}
 
 	},

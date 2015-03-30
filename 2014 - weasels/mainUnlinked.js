@@ -1,33 +1,6 @@
 /**
- * Main function, not using any external API
- * (without Clay intergration which is proxied)
+ * Main function, event handler initialization and application setup
  */
-
-// Proxy for the Clay namespace
-var Clay = Clay || {};
-var globalUseClay = false;
-
-Clay.Achievement = function (members){
-	this.members = members;
-	this.award = function()
-	{
-		alert("Achivement nb "+this.members.id);
-	}
-}
-Clay.Achievement.prototype.constructor = Clay.Achievement;
-
-Clay.Player = function() {}
-
-
-
-Clay.Player.saveUserData = function(a, b, c) {
-		alert("Call to save persistent data on key "+a+", value = "+b);
-}
-
-Clay.Player.fetchUserData = function(a,b,c) {
-		alert("Call to retrieve persistent data on key "+a+", value = "+b);
-}
-
 		
 function main() {
 controls = new Controls();
@@ -39,11 +12,19 @@ if ('ontouchstart' in document.documentElement) {
 	document.ontouchend = function(event) { return controls.onTouchEnd(event); }
 	document.ontouchleave = function(event) { return controls.onTouchEnd(event); }
 	document.ontouchmove = function(event) { return controls.onTouchMove(event); }
-	showTrapOnHover = false;	// do not show the trap upon hovering on mobile platforms using touch screen instead of mouses
+	showTrapOnHover = false;	// do not show the trap upon hovering on mobile platforms using touch screen instead of mouse
+	controls.scrollOnSwipe = true; 	// scroll the view upon swiping the screen / dragging on the background
 } else {
 	document.onmousedown = function(event) { return controls.onMouseDown(event); }
 	document.onmouseup = function(event) { return controls.onMouseUp(event); }
 	document.onmousemove = function(event) { return controls.onMouseMove(event); }
+/*
+	document.onmousedown = function(event) { return controls.onTouchStart(event); }
+	document.onmouseup = function(event) { return controls.onTouchEnd(event); }
+	document.onmousemove = function(event) { return controls.mouseLeftButton ? controls.onTouchMove(event) : true; }
+	showTrapOnHover = false;	// do not show the trap upon hovering on mobile platforms using touch screen instead of mouse
+	controls.scrollOnSwipe = true; 	// scroll the view upon swiping the screen / dragging on the background
+*/
 }
 document.onkeydown = function(event) { return controls.onKeyDown(event); }
 document.onkeyup = function(event) { return controls.onKeyUp(event); }
@@ -59,14 +40,14 @@ playField = new PlayField(document.getElementById("noise"));
 game = new Game(controls, playField, recordedData);
 renderer = new Renderer(document.getElementById("c"), document.getElementById("o"), 
 						document.getElementById("bg"), document.getElementById("cover"), document.getElementById("s"),
-						game, showTrapOnHover);
+						document.getElementById("introText"), game, showTrapOnHover);
 window.addEventListener('resize', function(event) {	renderer.resizeWindow(); } );
 
 playField.create(renderer.getSceneryImageData(), renderer.sceneryCanvas.width, renderer.sceneryCanvas.height);
 
 game.world.addExplosionListener(renderer);
 game.setRenderer (renderer);
-game.launch();
+game.init();
 
 }
 

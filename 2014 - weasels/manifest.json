@@ -1,0 +1,17 @@
+{
+  "name": "Pest Control : Weasels",
+  "version": "2.0 (second edition)"
+  "icons": {
+    "512": "images/icon512.png",
+    "128": "images/icon128.png",
+	"60": "images/icon60.png"
+  },
+  "app": {
+	"launch": {
+		"local_path": "index.html"
+	}
+  }
+  "description": "Puzzle shooter game where you must get rid of critters using traps.",
+  "default_locale": "en",
+  "orientation": "landscape"
+}

@@ -45,6 +45,7 @@ World.prototype = {
 	 */
 	loadLevel : function(index)
 	{	
+		this.highlightedTool = -1;	// do not keep the highlight from the previous game (on touch screens)
 		this.currentToolIndex = 5;	// gun selected
 		this.currentTool = 5;	// gun selected
 		this.predators = [];
@@ -54,8 +55,8 @@ World.prototype = {
 		this.shotgunReloadTime = 0;
 		this.levelIndex = index;
 
-		var level = this.loader.getLevel(index); // allLevels[Math.min(9, Math.max(0, index))];
-		this.variableTool = [8, 9, 10][Math.floor(index/15)];
+		var level = this.loader.getLevel(index);
+		this.variableTool = index<15 ? 8 : 9;	// cannon tower for levels 1 to 15, dynamite for 16 to 30
 		
 		this.levelTitle = level[0];
 
@@ -78,6 +79,24 @@ World.prototype = {
 		this.strategy.clear(this.traps);
 	},
 
+	/**
+	 * Return the X coordinate range of the entrances and exits
+	 * Used to position the screen upon starting the level
+	 * @return array containing the minimum and maximum X coordinate of entrances and exits
+	 */
+	getImportantLocations : function()
+	{
+		var xMin = this.playField.scenerySource.width;
+		var xMax = 0;
+		for (var i=0; i<this.traps.length; ++i)
+		{
+			if (this.traps[i].type == 6 || this.traps[i].type == 7) {
+				xMin = Math.min(xMin, this.traps[i].x);
+				xMax = Math.max(xMax, this.traps[i].x);
+			}
+		}
+		return [xMin, xMax];
+	},
 	
 	/**
 	 * Performs one step of animation : move critters, check them against traps
@@ -92,7 +111,7 @@ World.prototype = {
 		for (var i=0; i<this.predators.length; ++i)  {
 			this.predators[i].move(this.timer, scenery, this.strategy);
 			// avoid gun aim, even when reloading
-			this.predators[i].useShield(this.controls.worldX, this.controls.mouseY, this.currentTool == 5 && this.draggedTrap == -1);
+			this.predators[i].useShield(this.controls.worldX, this.controls.worldY, this.currentTool == 5 && this.draggedTrap == -1);
 			fraggedCount += (this.predators[i].activity < 0 ? 1 :0);
 			
 			// if hitting a blocker, turn around
@@ -222,7 +241,7 @@ World.prototype = {
 			   && Math.abs(trap.y - this.predators[j].y) < 10
 			   && Math.abs(trap.x + 25*trap.dir - this.predators[j].x) < 20)
 			{
-				this.predators[j].speedX += trap.dir / Math.abs(this.predators[j].x - trap.x - 10*trap.dir);
+				this.predators[j].speedX += trap.dir / (1+Math.abs(this.predators[j].x - trap.x - 10*trap.dir));
 			}
 		}
 	},
@@ -469,21 +488,30 @@ World.prototype = {
 		{
 			this.currentToolIndex = this.highlightedTool;
 			this.currentTool = (this.currentToolIndex == 4 ? this.variableTool : this.currentToolIndex);
+			
+			if (this.currentToolIndex>-1 && this.tools[this.currentToolIndex]>0)
+			{
+				this.draggedTrap = -2;	// traps can be dragged from the toolbar too
+				this.trapUnderMouse = -1;
+				this.dragging = true;
+				this.dragStartMouseX = this.controls.worldX;
+				this.dragStartMouseY = this.controls.worldY;
+			}
 		}		
-		if (this.controls.mouseY<this.playField.height) // TODO : adjust to canvas height
+		if (this.controls.mouseInPlayArea)
 		{	// mouse in playfield
 			if (this.draggedTrap == -1)
 			{	// empty handed. 
 				this.dragging = false;
 				this.dragValid = false;
-				this.trapUnderMouse = this.performGrabTest(this.controls.worldX, this.controls.mouseY, 5);
+				this.trapUnderMouse = this.performGrabTest(this.controls.worldX, this.controls.worldY, 5);
 				if (this.controls.mouseLeftButton)
 				{
+					this.dragStartMouseX = this.controls.worldX;
+					this.dragStartMouseY = this.controls.worldY;
 					if (this.trapUnderMouse>-1 && this.canMoveTrap(this.traps[this.trapUnderMouse].type)) {
 						// click over a trap, grab it
 						this.draggedTrap = this.trapUnderMouse;
-						this.dragStartMouseX = this.controls.worldX;
-						this.dragStartMouseY = this.controls.mouseY;
 						this.dragStartObjectX = this.traps[this.draggedTrap].x;
 						this.dragStartObjectY = this.traps[this.draggedTrap].y;
 						
@@ -491,79 +519,89 @@ World.prototype = {
 						this.strategy.removeHazard(this.traps[this.draggedTrap]);
 					} 
 					else if (this.trapUnderMouse == -1)
-					{	// click in an empty area, use the current tool
-						if (this.currentTool == 5) 
-						{	// shotgun
-							if (!this.shotgunReloadTime)
-							{
-								this.shootAt(this.controls.worldX, this.controls.mouseY);
-								this.controls.acknowledgeMouseClick();
-							}
-						} else {
-							if (this.currentToolIndex>-1 && this.tools[this.currentToolIndex]>0)
-							{	// other tool, with charges remaining
-								this.draggedTrap = -2;
-							}
+					{	
+						// click in an empty area, use the current tool (mouse) or scroll (touch screen)
+						if (this.currentTool != 5 && this.currentToolIndex>-1 && this.tools[this.currentToolIndex]>0)
+						{	// any tool but shotgun, with charges remaining
+							this.draggedTrap = -2;
+						} 
+						if (this.controls.scrollOnSwipe) {	// priority over trap creation on touch screen
+							this.draggedTrap = -3; // scrolling the background (touch screen only) or shotgun
 						}
 					}
 				}
 			
 			}
-			else  if (this.draggedTrap > -1)
-			{	// LMB hit on trap, choice to drag or turn it around
-				var dx = this.controls.worldX-this.dragStartMouseX;
-				var dy = this.controls.mouseY-this.dragStartMouseY;
-				this.dragging = this.dragging || (dx*dx+dy*dy > 25); // snap a bit at the beginning, to turn the trap around
-				
-				if (this.dragging)
-				{	// actually dragging, after moving the pointer far enough
-					var newX = this.dragStartObjectX + dx;
-					var newY = this.dragStartObjectY + dy;
-
-					this.dragValid = this.canPlaceTrapAt(this.traps[this.draggedTrap].type, newX, newY);
-					if (this.dragValid)
-					{
-						this.lastValidX = newX;
-						this.lastValidY = newY;
-					}
-					this.traps[this.draggedTrap].x = newX;
-					this.traps[this.draggedTrap].y = newY;
-					
-				}
-				if (!this.controls.mouseLeftButton)
-				{	// LMB released, end drag or action
-					if (!this.dragging)
-					{	// mouse stayed in place (below snap threshold). Turn trap around
-						if (this.traps[this.draggedTrap].type == 1		// fan
-							|| this.traps[this.draggedTrap].type == 2)	// flamethrower
-						{	// other traps do not rotate
-							this.traps[this.draggedTrap].dir *= -1;
-						}						
-					} else {
-						if (!this.dragValid)
-						{	// if dropping onto an invalid location, revert to the last valid coordinates
-							this.traps[this.draggedTrap].x = this.lastValidX;
-							this.traps[this.draggedTrap].y = this.lastValidY;
-						}
-					}
-					// trap was removed from hazard list upon dragging (even if ony turning it around), restore it
-					this.strategy.addHazard(this.traps[this.draggedTrap]);
-						
-					this.draggedTrap = -1;
-					this.dragging = false;
-				}
-			}
-			else	// this.draggedTrap == -2; means attempting to create a trap
+			else  
 			{
-				this.dragValid = this.canPlaceTrapAt(this.currentTool, this.controls.worldX, this.controls.mouseY);
-				if (!this.controls.mouseLeftButton)
-				{	// LMB released, trap creation if allowed
-					if (this.dragValid)
-					{	// OK to create a trap here
-						this.createTrap(this.currentTool, this.controls.worldX, this.controls.mouseY);		
-						--this.tools[this.currentToolIndex];
+				var dx = this.controls.worldX-this.dragStartMouseX;
+				var dy = this.controls.worldY-this.dragStartMouseY;
+				this.dragging = this.dragging || (dx*dx+dy*dy > 25); // snap a bit at the beginning, to turn the trap around
+				if (this.draggedTrap > -1)
+				{	// LMB hit on trap, choice to drag or turn it around
+					
+					if (this.dragging)
+					{	// actually dragging, after moving the pointer far enough
+						var newX = this.dragStartObjectX + dx;
+						var newY = this.dragStartObjectY + dy;
+
+						this.dragValid = this.canPlaceTrapAt(this.traps[this.draggedTrap].type, newX, newY);
+						if (this.dragValid)
+						{
+							this.lastValidX = newX;
+							this.lastValidY = newY;
+						}
+						this.traps[this.draggedTrap].x = newX;
+						this.traps[this.draggedTrap].y = newY;
+						
 					}
-					this.draggedTrap = -1;
+					if (!this.controls.mouseLeftButton)
+					{	// LMB released, end drag or action
+						if (!this.dragging)
+						{	// mouse stayed in place (below snap threshold). Turn trap around
+							if (this.traps[this.draggedTrap].type == 1		// fan
+								|| this.traps[this.draggedTrap].type == 2)	// flamethrower
+							{	// other traps do not rotate
+								this.traps[this.draggedTrap].dir *= -1;
+							}						
+						} else {
+							if (!this.dragValid)
+							{	// if dropping onto an invalid location, revert to the last valid coordinates
+								this.traps[this.draggedTrap].x = this.lastValidX;
+								this.traps[this.draggedTrap].y = this.lastValidY;
+							}
+						}
+						// trap was removed from hazard list upon dragging (even if ony turning it around), restore it
+						this.strategy.addHazard(this.traps[this.draggedTrap]);
+							
+						this.draggedTrap = -1;
+						this.dragging = false;
+					}
+				}
+				else 	// -2 attempting to create a trap , -3 scrolling (touch screen)
+				{
+					this.dragValid = this.canPlaceTrapAt(this.currentTool, this.controls.worldX, this.controls.worldY);
+					if (!this.controls.mouseLeftButton)
+					{	// LMB released
+						if (this.currentTool == 5)
+						{	// shotgun
+							if (!this.shotgunReloadTime && (!this.dragging || !this.controls.scrollOnSwipe))
+							{
+								this.shootAt(this.controls.worldX, this.controls.worldY);
+							}
+						} 
+						else if (this.draggedTrap==-2 || !this.dragging)
+						{	// -2 forces trap creation (dragged from toolbar, or added with mouse)
+							// -3 scrolls if dragging, or creates trap if not (tap on touch screen)
+							if (this.currentToolIndex>-1 && this.tools[this.currentToolIndex]>0)
+							{
+								// OK to create a trap here
+								this.createTrap(this.currentTool, this.controls.worldX, this.controls.worldY);		
+								--this.tools[this.currentToolIndex];
+							}
+						}
+						this.draggedTrap = -1;
+					}
 				}
 			}
 		}
@@ -582,7 +620,9 @@ World.prototype = {
 					} else {
 						this.removeTrap(this.draggedTrap);
 					}
-				}	// other possible value is -2, meaning trap creation. Returning it to the storage does nothing.
+				}	// other possible values are 
+					//   -2, meaning trap creation. Returning it to the storage does nothing.
+					//   -3, scrolling. No action in current class.
 				this.draggedTrap = -1;
 			}
 		}
@@ -664,7 +704,14 @@ World.prototype = {
 	 */
 	removeTrap : function(trapIndex)
 	{
-		++this.tools[this.traps[trapIndex].type];
+		// revert to tool type : tool 4 can be trap 8, 9 or 10 depending on level
+		var toolType = this.traps[trapIndex].type;
+		var toolTypeIndex = (toolType == this.variableTool ? 4 : toolType);
+		
+		// add it back to the accessible tools
+		++this.tools[toolTypeIndex];
+		
+		// and remove it from the level
 		this.strategy.removeHazard(this.traps[trapIndex]);
 		this.traps.splice(trapIndex, 1);
 	},
@@ -721,6 +768,6 @@ World.prototype = {
 	addExplosionListener : function(listener)
 	{
 		this.explosionListeners.push(listener);
-	}
-	
+	},
+		
 }
