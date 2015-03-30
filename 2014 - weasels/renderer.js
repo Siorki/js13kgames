@@ -593,11 +593,13 @@ Renderer.prototype = {
 		var toolIndex = this.game.world.currentTool;
 		var suffix = (this.game.world.tools[this.game.world.currentToolIndex]==0 ? " (none left)" : "");
 		if (this.game.world.highlightedTool > -1) {
+			// mouse over tool in the tool or control bar : name the tool
 			toolIndex = this.game.world.highlightedTool == 4 ? this.game.world.variableTool : this.game.world.highlightedTool;
 			suffix = (this.game.world.tools[this.game.world.highlightedTool]==0 ? " (none left)" : "");
 		}
 		
 		if (this.game.world.trapUnderMouse>-1 && this.game.world.trapUnderMouse<this.game.world.traps.length) {
+			// mouse over an ingame trap : indicate whether it can be moved or not
 			toolIndex = this.game.world.traps[this.game.world.trapUnderMouse].type;
 			if (this.game.world.canMoveTrap(toolIndex)) {
 				suffix = " (click and hold to move)";
@@ -606,6 +608,7 @@ Renderer.prototype = {
 			}
 		}
 		if (this.game.world.draggedTrap > -1 && this.game.world.draggedTrap<this.game.world.traps.length) {
+			// dragging a trap
 			toolIndex = this.game.world.traps[this.game.world.draggedTrap].type;
 			if (this.game.world.dragging) {
 				prefix = "Dragging ";
@@ -615,6 +618,13 @@ Renderer.prototype = {
 				suffix = " (turn around or move)";
 			}
 		}
+		if (this.game.world.highlightedTool==-1 && this.game.lastButtonClicked>1) {
+			// Fix for issue #10
+			// touch screen : keep the message about a "double click" button
+			// even after the first click is released (no hover on touch screen)
+			toolIndex = 16+this.game.lastButtonClicked;
+		}
+		
 		if (toolIndex > 17)
 		{
 			suffix = (this.game.lastButtonClicked == toolIndex - 16 ? " (click again to confirm)" : " (click twice)");
