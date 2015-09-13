@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+		<title>Alive'n'loaded</title>
+		<style type="text/css">
+
+canvas{
+  margin: 0px;
+  position: absolute;
+  top:0px;
+}
+
+ul {
+  width:100%;
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+
+#t { /* overlay panel */
+  width: 200px;
+  position:absolute;
+  display: none;
+  overflow:hidden;
+}
+
+#p { /* player panel */
+  width: 224px;
+  position:absolute;
+  top:0px;
+  background:#300;
+  color:#fff;
+} 
+
+#h { /* chat panel */
+  position:absolute;
+  background:#dff;
+  color:#000;
+  padding:8px 32px 8px 32px;
+  display:flex;
+  flex-direction:column;
+}
+
+#h > div {
+  flex:1;
+  overflow-y:auto;
+}
+
+#h > div > div {
+  display:table;
+  width:100%;
+}
+
+
+#h > div > div > div {
+  display:table-row;
+  border-top:solid 1px #06f;
+}
+
+#h > div > div > div > div {
+  display:table-cell;
+}
+
+
+.speech {
+  background:#fff;
+}
+
+#t > .l {
+  width:100%;
+  height:24px;
+  color:#fff;
+  background: #600;
+}
+
+li {
+  width:100%;
+  height:24px;
+  color: white;
+  background: #006;
+}
+
+.unavailable {
+  text-decoration: line-through;
+}
+
+li:hover, li:hover {
+  background: #03c;
+}
+
+li:active, li:active {
+  background: #06f;
+}
+
+#a { /* activity panel */
+  width: 224px;
+  position:absolute;
+  display: none;
+  color: #fff;
+  background: #006;
+}
+
+#a > li, input {
+  width:100%;
+  height:auto;
+}
+
+
+body {
+	background: #000;
+}
+
+
+p, h2
+{
+  display:inline-block;
+  margin-top:4px;
+  margin-bottom:4px;
+}
+
+p.right 
+{
+  float:right;
+}
+
+img {
+	display:none;
+}
+
+.equipt {
+	display:inline-block;
+	width:32px;
+	height:32px;
+	margin:4px 8px 4px 8px;
+	background-image:url(s.png);
+	border: solid 2px black;
+}
+
+.equipt:hover, #i div:hover {
+	border: solid 2px #600;
+}
+
+.equipt:active, #i div:active {
+	border: solid 2px #f00;
+}
+
+.selected, .selected:hover, #i div.selected, #i div.selected:hover {
+	border: solid 2px #c00;
+}
+
+hr {
+	margin: 0px;
+}
+
+#f { /* chat window top-right arrow */
+	position:absolute;
+	top:6px;
+	right:8px;
+}
+
+#f:hover {
+	color:#06f;
+}
+
+#i {
+ width:100%;
+ text-align: center;
+ margin-top:128px;
+}
+
+h1 {
+	color:#ea0;
+	width:80%;
+	margin: 0 auto;
+}
+
+#i div, #r > div > div  {
+	width:64px;
+	height:88px;	
+	background-image:url(s.png);
+}	
+
+#i div {
+	display:inline-block;
+	margin:12px;
+	border: solid 2px #000;
+}
+
+#i1, #r > div:nth-child(1) > div {
+	background-position:0px -208px;
+}
+
+#i2, #r > div:nth-child(2) > div {
+	background-position:0px -296px;
+}
+
+#i3, #r > div:nth-child(3) > div {
+	background-position:0px -384px;
+}
+
+
+#r { /* results panel */
+    position:absolute;
+	border: 2px solid #ea0;
+	top:-360px;
+	width:576px;
+    display:table;
+	background:#000;
+	color:#fe6;
+}
+
+
+#r > div {
+  display:table-row;
+}
+
+#r > div > * {
+  display:table-cell;
+  vertical-align:middle;
+}
+
+#r > div > h3 {
+  padding-left:64px;
+}
+
+.disabled {
+	opacity:0.2;
+}
+	</style>
+	</head>
+	<body>
+	    <div id="i">
+			<h1>Choose your character</h1><br>
+			<div id="i1"></div><div id="i2"></div><div id="i3"></div><br>
+			<input type="button" />
+		</div>
+		<canvas id="c" width=576 height=512></canvas>
+		<img id="s" src="s.png" />
+		<ul id="t"><li class="l"></li>
+			<li></li><li></li>
+		</ul>
+		<div id="p">
+			<h2></h2><hr>
+			<p></p><hr>
+			<p>Condition : </p><p></p><p class="right"></p>
+			<p></p><hr>
+			<p>Backpack</p><p class="right"></p><br><br>
+			<div><div>
+				<span class="equipt"></span>
+				<span class="equipt"></span>
+				<span class="equipt"></span>
+			</div>
+			<div>
+				<span class="equipt"></span>
+				<span class="equipt"></span>
+				<span class="equipt"></span>
+			</div>
+			<div>
+				<span class="equipt"></span>
+				<span class="equipt"></span>
+				<span class="equipt"></span>
+			</div>	
+			<div>
+				<span class="equipt"></span>
+				<span class="equipt"></span>
+				<span class="equipt"></span>
+			</div></div>			
+			<ul><li></li></ul>
+		</div>
+		<ul id="a">
+			<li>Active : +5⌛/turn, minimal chance to detect traps.</li>
+			<li>Cautious : +4⌛/turn, fair chance to detect traps and thieves.</li>
+			<li>Vigilant : +3⌛/turn, will detect most traps and deter thieves.</li>
+		</ul>
+		<div id="h"><input type=text />
+			<div><div></div></div><div id="f"></div>
+		</div>
+		<div id="r">
+			<div>
+				<div></div><h3></h3><h3></h3>
+			</div>
+			<div>
+				<div></div><h3></h3><h3></h3>
+			</div>
+			<div>
+				<div></div><h3></h3><h3></h3>
+			</div>
+		</div>
+		<script language="Javascript" src="/socket.io/socket.io.js"></script>
+		<script language="Javascript" src="game.js"></script>
+		<script language="Javascript" src="world.js"></script>
+		<script language="Javascript" src="worldLink.js"></script>
+		<script language="Javascript" src="renderer.js"></script>		
+		<script language="Javascript" src="controls.js"></script>		
+		<script language="Javascript" src="main.js"></script>		
+			
+</body></html>
