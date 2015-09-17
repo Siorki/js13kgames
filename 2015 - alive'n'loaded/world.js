@@ -71,7 +71,7 @@ World.prototype = {
 		if (nature > 31) { 	// collectible
 			return [0];		// take
 		}
-		if (nature > 12) { // pedestal, rocks or blocked door
+		if (nature > 11) { // pedestal, rocks or blocked door
 			return [];
 		}
 		var actions = [[3], [1], [4], [1]][nature&3];

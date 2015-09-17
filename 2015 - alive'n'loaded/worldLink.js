@@ -26,20 +26,20 @@ WorldLink.prototype = {
 	 */
 	connectToServer : function() {
 		this.socket = io(document.location.href);
-		this.socket.on('cA', this.notifyCharactersAvailable.bind(this));
-		this.socket.on('eW', this.notifyEnterWorld.bind(this));
-		this.socket.on('cy', this.notifyNewCycle.bind(this));
-		this.socket.on('pM', this.notifyPlayerMoved.bind(this));
-		this.socket.on('r3', this.replyPlayerChangedRoom.bind(this));
+		this.socket['on']('cA', this.notifyCharactersAvailable.bind(this));
+		this.socket['on']('eW', this.notifyEnterWorld.bind(this));
+		this.socket['on']('cy', this.notifyNewCycle.bind(this));
+		this.socket['on']('pM', this.notifyPlayerMoved.bind(this));
+		this.socket['on']('r3', this.replyPlayerChangedRoom.bind(this));
 		//this.socket.on('replyObjectExamined', this.replyObjectExamined.bind(this));
-		this.socket.on('n3', this.notifyPlayerChangedRoom.bind(this));
-		this.socket.on('rR', this.replyRoomAction.bind(this));
-		this.socket.on('n0', this.notifyObjectTaken.bind(this));
-		this.socket.on('nR', this.notifyRoomAction.bind(this));
+		this.socket['on']('n3', this.notifyPlayerChangedRoom.bind(this));
+		this.socket['on']('rR', this.replyRoomAction.bind(this));
+		this.socket['on']('n0', this.notifyObjectTaken.bind(this));
+		this.socket['on']('nR', this.notifyRoomAction.bind(this));
 		//this.socket.on('objectExamined', this.notifyObjectExamined.bind(this));
-		this.socket.on('n9', this.notifyTheftAttempt.bind(this));
-		this.socket.on('sp', this.notifySpeech.bind(this));
-		this.socket.on('ac', this.replyPlayerActivityChanged.bind(this));
+		this.socket['on']('n9', this.notifyTheftAttempt.bind(this));
+		this.socket['on']('sp', this.notifySpeech.bind(this));
+		this.socket['on']('ac', this.replyPlayerActivityChanged.bind(this));
 		//this.socket.on('cantco', this.notifyCantComply.bind(this));
 	},
 
@@ -62,7 +62,7 @@ WorldLink.prototype = {
 	 */
 	validateCharacter : function() {
 		if (this.availableCharacters[1+this.world.playerId]) {
-			this.socket.emit('chooseCharacter', this.world.playerId);
+			this.socket['emit']('chooseCharacter', this.world.playerId);
 		}
 	},
 	
@@ -85,7 +85,7 @@ WorldLink.prototype = {
 				}
 			}
 		}
-		this.socket.emit('move', targetX, targetY, targetOrientation);
+		this.socket['emit']('move', targetX, targetY, targetOrientation);
 	},	
 
 	/**
@@ -97,7 +97,7 @@ WorldLink.prototype = {
 	 */
 	performInventoryAction : function(actionId) {
 		if (this.world.actionCost[actionId] <= this.world.actionPoints) {	
-			this.socket.emit('action', actionId, false, this.world.selectedInInventory);
+			this.socket['emit']('action', actionId, false, this.world.selectedInInventory);
 		}
 	},
 	
@@ -112,7 +112,7 @@ WorldLink.prototype = {
 	performRoomAction : function(actionId, itemId) {
 		if (this.world.actionCost[actionId] <= this.world.actionPoints
 			&& (actionId || this.world.playerInventory.length<12)) {
-			this.socket.emit('action', actionId, true, itemId>=this.world.currentRoom.items.length?itemId-this.world.currentRoom.items.length:itemId);
+			this.socket['emit']('action', actionId, true, itemId>=this.world.currentRoom.items.length?itemId-this.world.currentRoom.items.length:itemId);
 			// deselect the item once the action is done
 			this.world.setSelectedItem(-1);
 			this.world.setHighlightedItem(-1);
@@ -125,14 +125,14 @@ WorldLink.prototype = {
 	 * @param message
 	 */
 	speak : function(message) {
-		this.socket.emit('speak', message);
+		this.socket['emit']('speak', message);
 	},
 	
 	/**
 	 * Uplink : the player changes his/her activity for the next round
 	 */ 
 	changeActivity : function(activity) {
-		this.socket.emit('cA', activity);
+		this.socket['emit']('cA', activity);
 	},
 	
 	/**
@@ -187,7 +187,7 @@ WorldLink.prototype = {
 			this.logEvent(3, blockedDoor>-1?18:15+Math.floor(Math.min(2, jolt/10)), blockedDoor, 0, "");
 		}
 		this.world.lastCycleTime = new Date()*1;
-		this.world.nextCycleTime = this.world.lastCycleTime+30000;
+		this.world.nextCycleTime = this.world.lastCycleTime+60000;
 		this.showResults = (game.state==3);
 	},
 	

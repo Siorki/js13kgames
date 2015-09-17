@@ -22,11 +22,11 @@ function charactersAvailable() {
  * Event handler for a new connection
  * Register the player to the waiting list and gives him or her the choice of characters
  */
-io.on('connection', function(socket) {
+io['on']('connection', function(socket) {
 	//log.debug('New connection', socket.id);
 
 	waitingList[socket.id]=new Player(socket);
-	socket.emit ('cA', charactersAvailable());
+	socket['emit']('cA', charactersAvailable());
 });
 
 /**
@@ -62,14 +62,14 @@ function newCycle() {
 				game.players[i].activity = game.players[i].nextActivity;
 				var apGain = Math.max(0, 5-game.players[i].activity-Math.max(0, Math.floor((game.players[i].inventory.length-1)/3)));
 				game.players[i].actionPoints = Math.min(12, game.players[i].actionPoints+apGain);
-				game.players[i].player.socket.emit('cy', game.players[i].actionPoints, game.players[i].activity, 10 /*game.timer*/,
+				game.players[i].player.socket['emit']('cy', game.players[i].actionPoints, game.players[i].activity, game.timer,
 					game.players[i].room == targetRoom ? targetDoor : (game.players[i].room == roomBehind ? 2^targetDoor : -1),
 					game.rooms[game.players[i].room]);
 				// if all players out or locked inside : set timer to -1
 			}
 		}
 	}
-	setTimeout (newCycle, 10000); // 1 cycle every 30 s
+	setTimeout (newCycle, 60000); // 1 cycle every 60 s
 }
 
 
@@ -151,12 +151,12 @@ Game.prototype = {
 		}
 		for (var i=0; i<this.players.length;++i) {
 			if (i==playerId) {
-				activePlayer.player.socket.emit('r3', direction, this.rooms[activePlayer.room], playerCoords, activePlayer.actionPoints);
+				activePlayer.player.socket['emit']('r3', direction, this.rooms[activePlayer.room], playerCoords, activePlayer.actionPoints);
 			} else if (this.players[i].room == activePlayer.room) {
 				// notify players in the new room of the arrival
-				this.players[i].player.socket.emit('n3', playerId, true, activePlayer.room, direction^2, activePlayer.x, activePlayer.y);
+				this.players[i].player.socket['emit']('n3', playerId, true, activePlayer.room, direction^2, activePlayer.x, activePlayer.y);
 			} else if (this.players[i].room == formerRoom) {
-				this.players[i].player.socket.emit('n3', playerId, false, activePlayer.room, direction, activePlayer.x, activePlayer.y);				
+				this.players[i].player.socket['emit']('n3', playerId, false, activePlayer.room, direction, activePlayer.x, activePlayer.y);				
 			}
 		}
 	},
@@ -169,7 +169,7 @@ Game.prototype = {
 	playerTakesObject : function(playerId, objectId) {
 		var activePlayer = this.players[playerId];
 		if (activePlayer.inventory.length>11) {	// inventory full
-			//this.socket.emit('cantco', 3, 1, activePlayer.actionPoints);
+			//this.socket['emit']('cantco', 3, 1, activePlayer.actionPoints);
 			return;
 		}
 		--activePlayer.actionPoints;
@@ -179,9 +179,9 @@ Game.prototype = {
 		room.items.splice(objectId, 1);
 		for (var i=0; i<this.players.length;++i) {
 			if (i==playerId) {
-				activePlayer.player.socket.emit('rR', 0, 0, 1, objectType>>2, room, activePlayer.inventory, activePlayer.actionPoints);
+				activePlayer.player.socket['emit']('rR', 0, 0, 1, objectType>>2, room, activePlayer.inventory, activePlayer.actionPoints);
 			} else if (this.players[i].room == activePlayer.room) {
-				this.players[i].player.socket.emit('n0', playerId, objectId, objectType>>2, room);
+				this.players[i].player.socket['emit']('n0', playerId, objectId, objectType>>2, room);
 			}
 		}
 	},
@@ -207,15 +207,15 @@ Game.prototype = {
 			room.items[direction].type = direction+4*this.doors[doorIndex];
 			for (var i=0; i<this.players.length;++i) {
 				if (i==playerId) {
-					activePlayer.player.socket.emit('rR', actionId, 0, 1, direction, room, activePlayer.inventory, activePlayer.actionPoints);
+					activePlayer.player.socket['emit']('rR', actionId, 0, 1, direction, room, activePlayer.inventory, activePlayer.actionPoints);
 				} else if (this.players[i].room == activePlayer.room) {
-					this.players[i].player.socket.emit ('nR', playerId, actionId, direction, room);
+					this.players[i].player.socket['emit'] ('nR', playerId, actionId, direction, room);
 				} else if (this.players[i].room == roomBehind) {
-					this.players[i].player.socket.emit ('nR', playerId, actionId, 2^direction, this.rooms[roomBehind]);
+					this.players[i].player.socket['emit'] ('nR', playerId, actionId, 2^direction, this.rooms[roomBehind]);
 				}
 			}
 		} /*else {	// not a closed door
-			activePlayer.player.socket.emit('cantco', 1, 0, this.players[playerId].actionPoints);
+			activePlayer.player.socket['emit']('cantco', 1, 0, this.players[playerId].actionPoints);
 		}*/
 	},
 	
@@ -232,9 +232,9 @@ Game.prototype = {
 		var objectType = inRoom ? this.rooms[activePlayer.room].items[itemIndex].type : activePlayer.inventory[itemIndex];
 		for (var i=0; i<this.players.length;++i) {
 			if (i==playerId) {
-				activePlayer.player.socket.emit('replyObjectExamined', objectType>>2, activePlayer.actionPoints);
+				activePlayer.player.socket['emit']('replyObjectExamined', objectType>>2, activePlayer.actionPoints);
 			} else if (this.players[i].room == activePlayer.room) {
-				this.players[i].player.socket.emit ('objectExamined', playerId, inRoom?objectType>>2:31);
+				this.players[i].player.socket['emit'] ('objectExamined', playerId, inRoom?objectType>>2:31);
 			}
 		}
 		
@@ -257,9 +257,9 @@ Game.prototype = {
 		activePlayer.inventory.splice(itemIndex, 1);
 		for (var i=0; i<this.players.length;++i) {
 			if (i==playerId) {
-				activePlayer.player.socket.emit('rR', 8, 0, 2, objectType>>2, room, activePlayer.inventory, activePlayer.actionPoints);
+				activePlayer.player.socket['emit']('rR', 8, 0, 2, objectType>>2, room, activePlayer.inventory, activePlayer.actionPoints);
 			} else if (this.players[i].room == activePlayer.room) {
-				this.players[i].player.socket.emit ('nR', playerId, 8, objectType>>2, room);
+				this.players[i].player.socket['emit'] ('nR', playerId, 8, objectType>>2, room);
 			}
 		}
 	},
@@ -288,11 +288,11 @@ Game.prototype = {
 		}
 		for (var i=0; i<this.players.length;++i) {
 			if (i==playerId) {
-				activePlayer.player.socket.emit('rR', 9+result, victimId, 1, objectId>>2, this.rooms[activePlayer.room], activePlayer.inventory, activePlayer.actionPoints);
+				activePlayer.player.socket['emit']('rR', 9+result, victimId, 1, objectId>>2, this.rooms[activePlayer.room], activePlayer.inventory, activePlayer.actionPoints);
 			} else if (i==victimId) {
-				this.players[i].player.socket.emit ('n9', playerId, result, victimId, victim.inventory);
+				this.players[i].player.socket['emit'] ('n9', playerId, result, victimId, victim.inventory);
 			} else if (this.players[i].room == activePlayer.room) {
-				this.players[i].player.socket.emit ('n9', playerId, result, victimId, 0);
+				this.players[i].player.socket['emit'] ('n9', playerId, result, victimId, 0);
 			}
 		}
 	}
@@ -303,7 +303,7 @@ Game.prototype = {
  */
 function Player(socket) {
 	this.socket = socket;
-	socket.on ('chooseCharacter', this.chooseCharacter.bind(this));
+	socket['on'] ('chooseCharacter', this.chooseCharacter.bind(this));
 }
 
 Player.prototype = {
@@ -319,27 +319,27 @@ Player.prototype = {
 		this.gameId = latestGameId;
 		this.characterId = characterId;
 		this.socket.join(latestGameId);
-		this.socket.emit('eW', game.rooms[1]);
+		this.socket['emit']('eW', game.rooms[1]);
 		for (var i=0; i<game.players.length; ++i) {	// inform the newcomer of players already waiting in front of the temple
 			if (game.players[i].player) {
-				this.socket.emit('n3', i, true, 1, 30, game.players[i].x, game.players[i].y);
+				this.socket['emit']('n3', i, true, 1, 30, game.players[i].x, game.players[i].y);
 			}
 		}
 		game.players[characterId].player = this;
 		
-		io.to(latestGameId).emit('n3', characterId, true, game.players[characterId].room=1, 30, game.players[characterId].x, game.players[characterId].y);
+		io['to'](latestGameId)['emit']('n3', characterId, true, game.players[characterId].room=1, 30, game.players[characterId].x, game.players[characterId].y);
 		
 		delete waitingList[this.socket.id];
-		this.socket.on('move', this.moveInsideRoom.bind(this));
-		this.socket.on('speak', this.speak.bind(this));
-		this.socket.on('cA', this.changeActivity.bind(this));
+		this.socket['on']('move', this.moveInsideRoom.bind(this));
+		this.socket['on']('speak', this.speak.bind(this));
+		this.socket['on']('cA', this.changeActivity.bind(this));
 		
 		if (++games[latestGameId].playerCount == 3) {
 			// launch the game. All players start with 2 action points (and will get more each cycle)
 			for (var i=0; i<3; ++i) {
 				var player = game.players[i].player;
-				player.socket.on('action', player.performAction.bind(player));		
-				player.socket.emit('cy', 2, game.players[i].activity, 0, -1, game.rooms[1]);
+				player.socket['on']('action', player.performAction.bind(player));		
+				player.socket['emit']('cy', 2, game.players[i].activity, 0, -1, game.rooms[1]);
 			}
 			
 			// append a new (empty) game to the list
@@ -348,7 +348,7 @@ Player.prototype = {
 		
 		// inform all players connected that the character list changed
 		for (var id in waitingList) {
-			waitingList[id].socket.emit('cA', charactersAvailable());
+			waitingList[id].socket['emit']('cA', charactersAvailable());
 		}
 	},
 	
@@ -366,7 +366,7 @@ Player.prototype = {
 		game.players[this.characterId].y = targetY;
 		for (var i=0; i<game.players.length; ++i) {
 			if (game.players[i].room == game.players[this.characterId].room) {
-				game.players[i].player.socket.emit('pM', this.characterId, targetX, targetY, targetOrientation);
+				game.players[i].player.socket['emit']('pM', this.characterId, targetX, targetY, targetOrientation);
 			}
 		}
 	},
@@ -416,7 +416,7 @@ Player.prototype = {
 					break;
 			}
 		} /*else { // not enough action points to perform the action
-			this.socket.emit('cantco', 0, actionPointsNeeded, game.players[this.characterId].actionPoints);
+			this.socket['emit']('cantco', 0, actionPointsNeeded, game.players[this.characterId].actionPoints);
 		}*/
 
 	},
@@ -429,12 +429,12 @@ Player.prototype = {
 	 * @param message : message
 	 */
 	speak : function(message) {
-		io.to(this.gameId).emit('sp', this.characterId, message);
+		io['to'](this.gameId)['emit']('sp', this.characterId, message);
 		/*
 		var game = games[this.gameId];
 		for (var i=0; i<this.players.length; ++i) {
 			if (game.players[i].room == game.players[this.characterId].room) {
-				game.players[i].player.socket.emit('sp', this.characterId, message);
+				game.players[i].player.socket['emit']('sp', this.characterId, message);
 			}
 		}*/
 	},
@@ -447,7 +447,7 @@ Player.prototype = {
 	changeActivity : function(activity) {
 		var game = games[this.gameId];
 		game.players[this.characterId].nextActivity = activity;
-		this.socket.emit('ac', activity);
+		this.socket['emit']('ac', activity);
 	}
 
 }
@@ -458,3 +458,4 @@ var waitingList = {};
 
 // start the update loop
 newCycle();
+

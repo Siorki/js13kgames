@@ -33,29 +33,31 @@ Controls.prototype = {
 	 * Call onMouseMove (pointer motion handler) first to record position as the event chain begins with onTouchStart
 	 * and there is no permanent tracking of the cursor position (unlike mouse event)
 	 */
+	 /*
 	onTouchStart : function(event)
 	{
 		this.onMouseMove(event);
 		return this.onMouseDown(event);
-	},
+	},*/
 	
 	/**
 	 * Handler for touch end / touch leave events
-	 */
+	 *//*
 	onTouchEnd : function(event)
 	{
 		event.preventDefault();
 		return this.onMouseUp(event);
-	},
+	},*/
 	
 	/**
 	 * Handler for touch move events
 	 */
+	 /*
 	onTouchMove : function(event)
 	{
 		event.preventDefault();
 		return this.onMouseMove(event);
-	},
+	},*/
 	
 	/**
 	 * Consume a mouse click, so that the icon will not
@@ -71,11 +73,11 @@ Controls.prototype = {
 	 */
 	onMouseMove : function(event) {
 		var clientX = 0, clientY = 0;
-		if ('changedTouches' in event && event.changedTouches.length > 0)
+/*		if ('changedTouches' in event && event.changedTouches.length > 0)
 		{	//touchmove event
 			clientX = event.changedTouches[0].clientX;
 			clientY = event.changedTouches[0].clientY;
-		}
+		}*/
 		if ('clientX' in event && 'clientY' in event)
 		{	// mousemove event
 			clientX = event.clientX;

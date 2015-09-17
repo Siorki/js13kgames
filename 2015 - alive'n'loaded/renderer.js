@@ -292,8 +292,8 @@ Renderer.prototype = {
 				message += "<div class='speech'>"+oneLog[4]+"</div>";
 			} else {
 				message += "<div>"+this.logMessages[oneLog[1]];
-				var param = (oneLog[1]>0&&oneLog[1]<5)||oneLog[1]==18?["south","east","north","west"][oneLog[2]]:this.itemNames[oneLog[2]];
-				param +=oneLog[1]==1||oneLog[1]==2||oneLog[1]==4?" door":"";
+				var param = (oneLog[1]>0&&oneLog[1]<5)||oneLog[1]==18||(oneLog[1]==14&&oneLog[2]<4)?["south","east","north","west"][oneLog[2]]:this.itemNames[oneLog[2]];
+				param +=oneLog[1]==1||oneLog[1]==2||oneLog[1]==4||(oneLog[1]==14&&oneLog[2]<4)?" door":"";
 				message = message.replace("$1", param).replace("$2", this.itemNames[48+oneLog[3]]).replace("$3", oneLog[0]>1?"her":"his").replace("$4", oneLog[3]>1?"her":"his");;
 			}
 			newLine.innerHTML = message;
@@ -440,7 +440,7 @@ Renderer.prototype = {
 		}
 		if (itemType==17) { // rockslide
 			var stillFalling = (itemDir == this.world.lastFall);
-			for (var i=1; i<40; ++i) {
+			for (var i=1; i<20; ++i) {
 				var size = 80/Math.pow(i,.5);
 				var dt = Math.max(0,(new Date() - this.game.world.lastCycleTime)/20-i);
 				var sx = ((35*i)&127)-63;
