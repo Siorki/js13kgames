@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+		<title>Corridor runner</title>
+		<style type="text/css">
+
+div {
+  width:  100%;
+  min-height:100%;
+  margin: 0px;
+ 
+}
+
+canvas {
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	width: 100%;
+	height: 100%;
+	background-color:#00F;
+}
+	
+		</style>
+	</head>
+	<body>
+		<div>
+		<canvas id="c"></canvas>
+	</div>
+	<script language="Javascript" src="../js/webglRenderer.js"></script>
+	<script>
+	
+		pitch = 0, yaw = 0;
+		document.onmousemove = function(event) {
+			clientX = event.clientX;
+			clientY = event.clientY;
+			yaw = Math.PI*2*clientX/window.innerWidth;
+			pitch = Math.PI*3*(clientY/window.innerHeight);
+		}
+	
+		function render() {
+			gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+			gl.viewport(0, 0, renderer.panelWidth, renderer.panelHeight);
+			gl.uniformMatrix4fv(gl.getUniformLocation(renderer.shaderProgram, "mP"), false, new Float32Array(renderer.makePerspective(0, 0, 0, -30, 5, renderer.panelWidth/renderer.panelHeight, 1, 200, pitch, yaw)));
+		
+			gl.uniformMatrix4fv(gl.getUniformLocation(renderer.shaderProgram, "mX"), false, new Float32Array(
+		   [1.0, 0.0, 0.0, 0.0,
+			0.0, 1.0, 0.0, 0.0, 
+			0.0, 0.0, 1.0, 0.0,
+			0.0, 0.0, 0.0, 1.0]));
+
+			
+			gl.bindBuffer(gl.ARRAY_BUFFER, renderer.shipGeometryGLBuffer);
+			gl.vertexAttribPointer(gl.getAttribLocation(renderer.shaderProgram, "a"), 3, gl.FLOAT, false, 0, 0);
+		
+			gl.bindBuffer(gl.ARRAY_BUFFER, renderer.shipTextureCoordGLBuffer);
+			gl.vertexAttribPointer(gl.getAttribLocation(renderer.shaderProgram, "t"), 2, gl.FLOAT, false, 0, 0);
+
+			gl.bindBuffer(gl.ARRAY_BUFFER, renderer.shipNormalGLBuffer);
+			gl.vertexAttribPointer(gl.getAttribLocation(renderer.shaderProgram, "n"), 3, gl.FLOAT, false, 0, 0);
+			
+			gl.uniform4f(gl.getUniformLocation(renderer.shaderProgram, "uC"), .2, .2, .2, .4); // specular for ship
+			
+			var xK = 0, yK = 0, zK = 0, c1 = 1, s1 = 0, c2 = 1, s2 = 0, cK = 1, sK = 0; 
+			gl.uniformMatrix4fv(gl.getUniformLocation(renderer.shaderProgram, "mX"), false, new Float32Array(
+		   [ cK*c2-sK*s1*s2, -sK*c1, cK*s2+sK*s1*c2, 0.0,
+			 sK*c2+cK*s1*s2,  cK*c1, sK*s2-cK*s1*c2, 0.0, 
+			 -c1*s2        ,  s1   , c1*c2         , 0.0,
+			 xK, yK, zK, 1.0]));
+			// texture and view matrix are unchanged 
+			for (var i=0; i<20; ++i) {
+				gl.drawArrays(gl.TRIANGLE_STRIP, i*42, 42);
+			}
+			gl.uniform4f(gl.getUniformLocation(renderer.shaderProgram, "uC"), 0, 0, 1, .5);
+			for (var i=0; i<268; ++i) {
+				gl.drawArrays(gl.LINE_STRIP, i*42, 42);
+			}
+			
+		
+			gl.uniform4f(gl.getUniformLocation(renderer.shaderProgram, "uC"), 0, 0, 1, .5);
+			gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeVerticesBuffer);
+			gl.bindBuffer(gl.ARRAY_BUFFER, cubeGeometryBuffer);
+			gl.vertexAttribPointer(gl.getAttribLocation(renderer.shaderProgram, "a"), 3, gl.FLOAT, false, 0, 0);
+			gl.drawElements(gl.LINES, cubeIndices.length, gl.UNSIGNED_SHORT, 0);
+			
+			requestAnimationFrame(render);
+
+		}
+	
+		var game = { world : {} };
+		game.world.setShipGeometry = function (a,b) {};
+		var renderer = new WebGLRenderer (document.getElementById('c'), game);
+		
+		renderer.initialize();
+		renderer.resizeWindow();
+		
+		var cubeVertices = [
+			-1, -1, -1,
+			 1, -1, -1,
+			 1,  1, -1,
+			-1,  1, -1,
+			-1, -1,  1,
+			 1, -1,  1,
+			 1,  1,  1,
+			-1,  1,  1,
+		  ];
+		var cubeIndices = [
+			0, 1,
+			1, 2,
+			2, 3,
+			3, 0,
+			4, 5,
+			5, 6,
+			6, 7,
+			7, 4,
+			0, 4,
+			1, 5,
+			2, 6,
+			3, 7,
+		  ];
+		
+		var cubeGeometryBuffer = gl.createBuffer();
+		gl.bindBuffer(gl.ARRAY_BUFFER, cubeGeometryBuffer);
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(cubeVertices), gl.STATIC_DRAW);
+		
+		gl.enableVertexAttribArray(gl.getAttribLocation(renderer.shaderProgram, "a"));
+		gl.vertexAttribPointer(gl.getAttribLocation(renderer.shaderProgram, "a"), 3, gl.FLOAT, false, 0, 0);
+
+		var cubeVerticesBuffer = gl.createBuffer();
+		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeVerticesBuffer);
+		gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cubeIndices), gl.STATIC_DRAW);
+		
+  
+		render();
+		
+	
+	</script>
+	
+
+</body></html>
