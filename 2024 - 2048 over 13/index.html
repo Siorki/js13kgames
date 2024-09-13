@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+		<title>2048 / 13</title>
+		<style type="text/css">
+
+div, canvas{
+  margin: 0px;
+  position: absolute;
+  top: 0px;
+  left: 50%;
+}
+
+body {
+	overflow-x : hidden;
+	overflow-y : hidden;
+	background: #000;
+}
+
+img {
+	display:none;
+}
+
+div#m {
+	position: fixed;
+    left:30%;
+	top:30%;
+	width:25%;
+	padding:3%;
+	background: #688;
+	color: #fff;
+	border: white 4px solid;
+	border-radius: 10px;
+	z-index:1;
+	font: 3vmin cursive;
+}
+	
+		</style>
+	</head>
+	<body>
+		<div>
+		<canvas id="c"></canvas>
+		<img id="s" src="images/keys.png" />
+		</div>
+		<script language="Javascript" src="js/game.js"></script>
+		<script language="Javascript" src="js/engine.js"></script>
+		<script language="Javascript" src="js/renderer.js"></script>		
+		<script language="Javascript" src="js/controls.js"></script>		
+		<script language="Javascript" src="js/main.js"></script>		
+		<script language="Javascript" src="js/menuDriver.js"></script>		
+		<script language="Javascript" src="js/song.js"></script>
+		<script language="Javascript" src="js/player-small.js"></script>
+			
+</body></html>
