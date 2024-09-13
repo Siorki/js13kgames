@@ -8,7 +8,7 @@ Each time you get 8 4 and 1 side by side, they fuse into a 13.
 
 Play with keyboard, mouse or touch screen.
 
-## TO BUILD
+## TO BUILD
 
 The build performed using the command line.
 
@@ -20,8 +20,9 @@ then run `build\buildAll.sh`
 
 The output is located in `dist\${BUILD_NUMBER}`
 
+
 ## CREDITS
 
-
 Soundbox player (player-small.js) by Marcus Geelnard, under zlib/linbpng licence
+
 Background song is a cover of [VectorDance by Cult](https://www.pouet.net/prod.php?which=67022)
