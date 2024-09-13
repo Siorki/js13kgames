@@ -1,4 +1,4 @@
-**2048 / 13** is my entry for [js13kgames edition 2024][https://dev.js13kgames.com/2024/games]
+**2048 / 13** is my entry for [js13kgames edition 2024](https://dev.js13kgames.com/2024/games)
 
 ## TO PLAY
 It is a puzzle game that would play pretty much like a 2048 ...
@@ -19,3 +19,9 @@ Edit build/buildAll.sh and edit lines 2 and 5 :
 then run `build\buildAll.sh`
 
 The output is located in `dist\${BUILD_NUMBER}`
+
+## CREDITS
+
+
+Soundbox player (player-small.js) by Marcus Geelnard, under zlib/linbpng licence
+Background song is a cover of [VectorDance by Cult](https://www.pouet.net/prod.php?which=67022)
